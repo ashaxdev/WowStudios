@@ -18,8 +18,8 @@ export default function HomePage() {
   return (
     <PublicLayout>
       <HeroSection />
-      <MarqueeSection />
-      {/* <StatsSection /> */}
+      {/* <MarqueeSection /> */}
+      <StatsSection />
       <ServicesSection />
       <FeaturedWork />
       <AboutTeaser />
