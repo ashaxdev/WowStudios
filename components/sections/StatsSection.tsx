@@ -351,10 +351,8 @@ export default function StatsSection() {
               From weddings and grand celebrations
               to baby shoots and intimate family moments —
               we preserve every emotion with elegance,
-              creativity, and{' '}
-              <span className="s-highlight">
-                authenticity.
-              </span>
+              creativity, and authenticity.
+              
             </p>
 
           </div>

@@ -20,8 +20,9 @@ export default function HomePage() {
       <HeroSection />
       {/* <MarqueeSection /> */}
       <StatsSection />
+       <FeaturedWork />
       <ServicesSection />
-      <FeaturedWork />
+     
       <AboutTeaser />
       <TestimonialsSection />
       <AIChatbot />

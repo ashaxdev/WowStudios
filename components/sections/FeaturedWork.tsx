@@ -3,10 +3,30 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 
 const projects = [
-  { id: '1', title: 'Romantic Pre-Wedding Collection', category: 'Pre-Wedding', image: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=1200&q=80', large: true },
-  { id: '2', title: 'Radiant Maternity Portraits', category: 'Maternity', image: 'https://images.unsplash.com/photo-1555252333-9f8e92e65df9?w=600&q=80' },
-  { id: '3', title: 'Precious Newborn Moments', category: 'Newborn', image: 'https://images.unsplash.com/photo-1566004100631-35d015d6a491?w=600&q=80' },
-  { id: '4', title: 'Milestone Birthday Shoot', category: 'Birthday', image: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=600&q=80' },
+  { id: '1', image: 'service/2.jpg', large: true },
+  { id: '2', image: 'service/1.jpg' },
+  { id: '3', image: 'service/9.jpg' },
+  { id: '4', image: 'service/bride sow.jpg' },
+  { id: '5', image: 'service/chri.jpg' },
+  { id: '6', image: 'service/closwe.jpg' },
+  { id: '7', image: 'service/Copy of charu.jpg' },
+  { id: '8', image: 'service/Copy of DSC01197.jpg' },
+  { id: '9', image: 'service/divya.jpg' },
+  { id: '10', image: 'service/DSC01121.jpg' },
+  { id: '11', image: 'service/indoor.jpg' },
+  { id: '12', image: 'service/jeg.jpg' },
+  { id: '13', image: 'service/kovil.jpg' },
+  { id: '14', image: 'service/m6.jpg' },
+  { id: '15', image: 'service/mermaid outfit.jpg' },
+  { id: '16', image: 'service/moon.jpg' },
+  { id: '17', image: 'service/NEW.jpg' },
+  { id: '18', image: 'service/pa.jpg' },
+  { id: '19', image: 'service/ps img 1.jpg' },
+  { id: '20', image: 'service/roui.jpg' },
+  { id: '21', image: 'service/sai.jpg' },
+  { id: '22', image: 'service/sun flower.jpg' },
+  { id: '23', image: 'service/vs.jpg' },
+  
 ];
 
 export default function FeaturedWork() {
@@ -29,7 +49,7 @@ export default function FeaturedWork() {
               className={`fw-card${p.large ? ' fw-card--large' : ''}`}
               whileHover={{ scale: 1.01 }}
             >
-              <img src={p.image} alt={p.title}
+              <img src={p.image} 
                 style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s ease', display: 'block' }}
                 onMouseEnter={e => ((e.currentTarget as HTMLElement).style.transform = 'scale(1.05)')}
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.transform = 'scale(1)')} />
