@@ -49,7 +49,7 @@ export default function FeaturedWork() {
               className={`fw-card${p.large ? ' fw-card--large' : ''}`}
               whileHover={{ scale: 1.01 }}
             >
-              <img src={p.image} 
+              <img src={p.image}
                 style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.6s ease', display: 'block' }}
                 onMouseEnter={e => ((e.currentTarget as HTMLElement).style.transform = 'scale(1.05)')}
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.transform = 'scale(1)')} />
