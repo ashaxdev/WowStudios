@@ -56,8 +56,8 @@ export default function FeaturedWork() {
               <div className={`fw-overlay${p.large ? ' fw-overlay--visible' : ''}`}
                 onMouseEnter={e => ((e.currentTarget as HTMLElement).style.opacity = '1')}
                 onMouseLeave={e => ((e.currentTarget as HTMLElement).style.opacity = p.large ? '1' : '0')}>
-                <span style={{ fontSize: '0.58rem', letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--gold-light)', marginBottom: '0.35rem' }}>{p.category}</span>
-                <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(1rem,2.5vw,1.6rem)', color: 'white', fontWeight: 400 }}>{p.title}</h3>
+                {/* <span style={{ fontSize: '0.58rem', letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--gold-light)', marginBottom: '0.35rem' }}>{p.category}</span>
+                <h3 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(1rem,2.5vw,1.6rem)', color: 'white', fontWeight: 400 }}>{p.title}</h3> */}
               </div>
             </motion.div>
           ))}
