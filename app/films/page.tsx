@@ -233,7 +233,7 @@ function FilmCard({ film, index, onClick }: FilmCardProps) {
             transition: 'transform 0.5s ease',
           }}
           onError={(e) => {
-            e.target.src = `https://img.youtube.com/vi/${film.videoId}/hqdefault.jpg`;
+            (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${film.videoId}/hqdefault.jpg`;
           }}
         />
         {/* Dark overlay */}
