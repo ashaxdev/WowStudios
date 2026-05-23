@@ -8,6 +8,7 @@ import FeaturedWork from '@/components/sections/FeaturedWork';
 import AboutTeaser from '@/components/sections/AboutTeaser';
 import TestimonialsSection from '@/components/sections/TestimonialsSection';
 import AIChatbot from '@/components/chatbot/AIChatbot';
+import VideographyTeaser from '@/components/sections/VideographyTeaser';
 
 export const metadata: Metadata = {
   title: 'Wow Shotz Studio – Premium Photography in Tirunelveli',
@@ -21,9 +22,10 @@ export default function HomePage() {
       {/* <MarqueeSection /> */}
       <StatsSection />
        <FeaturedWork />
-      {/* <ServicesSection />
+      {/* <ServicesSection /> */}
      
-      <AboutTeaser /> */}
+      {/* <AboutTeaser /> */}
+      <VideographyTeaser/>
       <TestimonialsSection />
       <AIChatbot />
     </PublicLayout>
