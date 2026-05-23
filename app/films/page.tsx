@@ -329,7 +329,7 @@ function FilmCard({ film, index, onClick }: FilmCardProps) {
 // ── Main page ────────────────────────────────────────────
 export default function FilmsPage() {
   const [active, setActive] = useState('All');
-  const [modal, setModal] = useState(null);
+  const [modal, setModal] = useState<Film | null>(null);
 
   const filtered =
     active === 'All' ? FILMS : FILMS.filter((f) => f.category === active);
