@@ -21,9 +21,9 @@ export default function HomePage() {
       {/* <MarqueeSection /> */}
       <StatsSection />
        <FeaturedWork />
-      <ServicesSection />
+      {/* <ServicesSection />
      
-      <AboutTeaser />
+      <AboutTeaser /> */}
       <TestimonialsSection />
       <AIChatbot />
     </PublicLayout>
