@@ -1,9 +1,10 @@
 'use client';
+
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 
 const projects = [
-  { id: '1', image: 'service/2.jpg'},
+  { id: '1', image: 'service/2.jpg' },
   { id: '2', image: 'service/1.jpg' },
   { id: '3', image: 'service/9.jpg' },
   { id: '4', image: 'service/bride sow.jpg' },
@@ -35,8 +36,21 @@ export default function FeaturedWork() {
         {/* Header */}
         <div style={{ marginBottom: '2.75rem' }}>
           <p className="eyebrow">Selected Work</p>
-          <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.2rem,5vw,3.8rem)', fontWeight: 300, color: 'var(--charcoal)', lineHeight: 1.1 }}>
-            Crafted with<br /><em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>heart & precision</em>
+
+          <h2
+            style={{
+              fontFamily: 'Cormorant Garamond, serif',
+              fontSize: 'clamp(2.2rem,5vw,3.8rem)',
+              fontWeight: 300,
+              color: 'var(--charcoal)',
+              lineHeight: 1.1,
+            }}
+          >
+            Crafted with
+            <br />
+            <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>
+              heart & precision
+            </em>
           </h2>
         </div>
 
@@ -49,12 +63,15 @@ export default function FeaturedWork() {
               initial={{ opacity: 0, y: 36 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.06, duration: 0.7 }}
+              transition={{
+                delay: i * 0.05,
+                duration: 0.7,
+              }}
             >
               <div className="fw-img-wrap">
                 <img
                   src={p.image}
-                  alt=""
+                  alt="Photography Work"
                   className="fw-img"
                 />
               </div>
@@ -62,48 +79,97 @@ export default function FeaturedWork() {
           ))}
         </div>
 
-        {/* Button below grid */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '2.5rem' }}>
-          <Link href="/portfolio" className="btn-outline">View Portfolio</Link>
+        {/* Button */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            marginTop: '2.5rem',
+          }}
+        >
+          <Link href="/portfolio" className="btn-outline">
+            View Portfolio
+          </Link>
         </div>
       </div>
 
       <style>{`
-        /* ── Masonry via CSS columns ── */
+        /* ─────────────────────────────
+           Masonry Layout
+        ───────────────────────────── */
         .fw-masonry {
           columns: 3;
           column-gap: 1rem;
         }
 
         .fw-item {
-          break-inside: avoid;          /* never split an image across columns */
+          break-inside: avoid;
+          -webkit-column-break-inside: avoid;
+          page-break-inside: avoid;
+
+          display: inline-block;
+          width: 100%;
+
           margin-bottom: 1rem;
+
+          border-radius: 14px;
           overflow: hidden;
-          border-radius: 2px;
+
           background: var(--linen);
           cursor: pointer;
         }
 
         .fw-img-wrap {
           overflow: hidden;
-          border-radius: 2px;
+          border-radius: 14px;
+
+          line-height: 0;
         }
 
         .fw-img {
           width: 100%;
-          height: auto;          /* natural aspect ratio — no cropping */
+          height: auto;
+
           display: block;
-          transition: transform 0.6s ease;
+          object-fit: cover;
+
+          transition: transform 0.7s ease;
         }
 
         .fw-item:hover .fw-img {
           transform: scale(1.05);
         }
 
-        /* ── Mobile: 2 columns ── */
+        /* ─────────────────────────────
+           Tablet
+        ───────────────────────────── */
+        @media (max-width: 1024px) {
+          .fw-masonry {
+            columns: 2;
+            column-gap: 0.9rem;
+          }
+
+          .fw-item {
+            margin-bottom: 0.9rem;
+          }
+        }
+
+        /* ─────────────────────────────
+           Mobile
+        ───────────────────────────── */
         @media (max-width: 640px) {
           .fw-masonry {
             columns: 2;
+            column-gap: 0.7rem;
+          }
+
+          .fw-item {
+            margin-bottom: 0.7rem;
+            border-radius: 10px;
+          }
+
+          .fw-img-wrap {
+            border-radius: 10px;
           }
         }
       `}</style>
