@@ -25,7 +25,6 @@ export default function StatsSection() {
       top:50%;
       left:50%;
       width:220%;
-      height:100%;
       transform:translate(-50%, -50%);
       border:none;
       pointer-events:none;
@@ -78,7 +77,6 @@ export default function StatsSection() {
 
         .s-wrap{
           width:100%;
-          min-height:10vh;
           background:var(--white);
           overflow:hidden;
           position:relative;
@@ -86,7 +84,6 @@ export default function StatsSection() {
         }
 
         .s-grid{
-          min-height:100vh;
           display:grid;
           grid-template-columns:240px 1fr 160px;
           position:relative;
@@ -241,15 +238,18 @@ export default function StatsSection() {
             align-items:center;
             width:100%;
             overflow:hidden;
+            padding:0;
+            margin:0;
             line-height:0;
           }
 
           .s-mobile-logo{
             width:100%;
             height:auto;
-            object-fit:contain;
             display:block;
-            margin-bottom:-6px;
+            object-fit:cover;
+            margin:0;
+            padding:0;
           }
 
           /* TEXT */
@@ -352,7 +352,6 @@ export default function StatsSection() {
               to baby shoots and intimate family moments —
               we preserve every emotion with elegance,
               creativity, and authenticity.
-              
             </p>
 
           </div>

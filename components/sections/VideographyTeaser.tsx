@@ -32,7 +32,7 @@ export default function VideographyTeaser() {
           zIndex: 0,
         }}
         // Replace with your own hosted video URL
-        src="https://www.w3schools.com/html/mov_bbb.mp4"
+        src="videos/flim.mp4"
         poster="https://images.unsplash.com/photo-1512070679279-8988d32161be?w=1400&q=80"
       />
 
