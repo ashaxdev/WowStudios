@@ -3,10 +3,9 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const testimonials = [
-  { id: '1', name: 'Priya Rajan', role: 'Maternity Client', content: 'The team at Wow Shotz made us feel so comfortable and the maternity photos are absolutely breathtaking. Every detail was perfect. These memories will last forever.' },
-  { id: '2', name: 'Karthikeyan M.', role: 'Newborn Session', content: 'We were nervous about a newborn shoot but they were incredibly gentle and patient. The photos captured our daughter\'s first days so beautifully. Worth every rupee!' },
-  { id: '3', name: 'Deepa & Senthil', role: 'Pre-Wedding Couple', content: 'Our pre-wedding photos look like they belong in a magazine! The team had such creative ideas and the editing is stunning. Everyone asked who the photographer was.' },
-  { id: '4', name: 'Lakshmi V.', role: 'Family Photography Client', content: 'We\'ve been coming to Wow Shotz for 3 years for family photos. They remember every preference and the results keep getting better. Best studio in Tirunelveli!' },
+  { id: '1', name: 'Monii', role: 'Wedding Client', content: 'We absolutely loved our preshoot and wedding album. Everything was captured so beautifully. The quality and editing are outstanding. Entire team was very friendly and made us feel comfortable. Drone shots were amazing and gave a cinematic feel.' },
+  { id: '2', name: 'Soorya Gomu A.', role: 'Engagement Client', content: 'We had the most amazing engagement photography experience! The entire shoot was fun, natural, and stress-free. The guidance with poses was so helpful, but nothing felt forced — every moment felt authentic.' },
+  { id: '3', name: 'Sowmiyavela Chellaperumal', role: 'Engagement Client', content: 'They did an amazing job capturing our engagement beautifully. They made us feel so comfortable throughout the session, and it was so easy to talk to them. The whole experience was relaxed and enjoyable. Highly recommended!' },
 ];
 
 export default function TestimonialsSection() {
