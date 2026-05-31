@@ -9,12 +9,147 @@ import AIChatbot from '@/components/chatbot/AIChatbot';
 // };
 
 const packages = [
-  { name: 'Maternity Bliss', price: 'Contact Us', duration: '2 hrs', prints: '20 edited photos', features: ['Studio + outdoor options', 'Wardrobe styling help', 'Partner & sibling included', 'Online gallery delivery', 'Print package optional'], color: 'var(--gold-pale)' },
-  { name: 'Newborn Dreams', price: 'Contact Us', duration: '3 hrs', prints: '25 edited photos', features: ['Safety-first posing', 'Premium prop collection', 'Family shots included', 'Sibling shots included', 'Same-week delivery'], color: 'var(--ivory)' },
-  { name: 'Birthday Royale', price: 'Contact Us', duration: '2 hrs', prints: '30 edited photos', features: ['Theme setup', 'Costume / outfit changes', 'Cake smash optional', 'Cinematic reel add-on', 'Same-day preview'], color: 'var(--gold-pale)', popular: true },
-  { name: 'Pre-Wedding Story', price: 'Contact Us', duration: '4 hrs', prints: '40 edited photos', features: ['2 locations', 'Styling consultation', 'Cinematic film optional', 'Album design available', 'Priority turnaround'], color: 'var(--ivory)' },
-  { name: 'Family Portrait', price: 'Contact Us', duration: '1.5 hrs', prints: '15 edited photos', features: ['Up to 6 members', 'Studio backdrop options', 'Casual & formal looks', 'Digital + print ready', 'Quick 3-day delivery'], color: 'var(--gold-pale)' },
-  { name: 'Corporate & Product', price: 'Contact Us', duration: 'Custom', prints: 'As required', features: ['Headshots & team photos', 'Product flat-lays', 'White/lifestyle backgrounds', 'Commercial licensing', 'RAW files optional'], color: 'var(--ivory)' },
+  {
+    name: 'Wedding Photography & Videography',
+    price: 'Contact Us',
+    duration: 'Full Day',
+    prints: 'Unlimited Coverage',
+    features: [
+      'Traditional Photography',
+      'Candid Photography',
+      'Traditional Videography',
+      'Cinematic Wedding Film',
+      'Premium Wedding Album',
+    ],
+    color: 'var(--gold-pale)',
+    popular: true,
+  },
+  {
+    name: 'Candid Photography',
+    price: 'Contact Us',
+    duration: 'Custom',
+    prints: 'Edited Photos',
+    features: [
+      'Natural Expressions',
+      'Storytelling Moments',
+      'Professional Retouching',
+      'High Resolution Delivery',
+      'Online Gallery',
+    ],
+    color: 'var(--ivory)',
+  },
+  {
+    name: 'Drone Photography',
+    price: 'Contact Us',
+    duration: 'Custom',
+    prints: 'Aerial Coverage',
+    features: [
+      '4K Drone Coverage',
+      'Venue Aerial Shots',
+      'Outdoor Event Coverage',
+      'Cinematic Drone Videos',
+      'Licensed Drone Operation',
+    ],
+    color: 'var(--gold-pale)',
+  },
+  {
+    name: 'Pre-Wedding Shoots',
+    price: 'Contact Us',
+    duration: '4 Hours',
+    prints: '40 Edited Photos',
+    features: [
+      'Multiple Locations',
+      'Outfit Changes',
+      'Creative Concepts',
+      'Cinematic Reel',
+      'Premium Editing',
+    ],
+    color: 'var(--ivory)',
+  },
+  {
+    name: 'Destination Wedding Photography',
+    price: 'Contact Us',
+    duration: 'Multi-Day',
+    prints: 'Complete Coverage',
+    features: [
+      'Travel Coverage',
+      'Wedding Event Coverage',
+      'Drone Photography',
+      'Highlight Film',
+      'Luxury Album Design',
+    ],
+    color: 'var(--gold-pale)',
+  },
+  {
+    name: 'Maternity Photography',
+    price: 'Contact Us',
+    duration: '2 Hours',
+    prints: '20 Edited Photos',
+    features: [
+      'Studio Session',
+      'Outdoor Session',
+      'Partner Included',
+      'Wardrobe Guidance',
+      'Professional Retouching',
+    ],
+    color: 'var(--ivory)',
+  },
+  {
+    name: 'Newborn Photography',
+    price: 'Contact Us',
+    duration: '3 Hours',
+    prints: '25 Edited Photos',
+    features: [
+      'Safe Baby Posing',
+      'Premium Props',
+      'Family Portraits',
+      'Sibling Photos',
+      'Fast Delivery',
+    ],
+    color: 'var(--gold-pale)',
+  },
+  {
+    name: 'Birthday Photography',
+    price: 'Contact Us',
+    duration: '2 Hours',
+    prints: '30 Edited Photos',
+    features: [
+      'Theme Setup',
+      'Cake Smash Session',
+      'Family Coverage',
+      'Highlight Reel',
+      'Same-Day Preview',
+    ],
+    color: 'var(--ivory)',
+  },
+  {
+    name: 'Family Portraits',
+    price: 'Contact Us',
+    duration: '1.5 Hours',
+    prints: '15 Edited Photos',
+    features: [
+      'Studio Portraits',
+      'Outdoor Portraits',
+      'Large Family Groups',
+      'Print Ready Images',
+      'Quick Delivery',
+    ],
+    color: 'var(--gold-pale)',
+  },
+  {
+    name: 'Corporate Photography',
+    price: 'Contact Us',
+    duration: 'Custom',
+    prints: 'As Required',
+    features: [
+      'Corporate Headshots',
+      'Team Photography',
+      'Office Branding',
+      'Business Events',
+      'Commercial Usage Rights',
+    ],
+    color: 'var(--ivory)',
+  },
 ];
 
 const faqs = [
@@ -33,10 +168,15 @@ export default function DetailsPage() {
       <section style={{ background: 'var(--charcoal)', paddingTop: 140, paddingBottom: '4rem' }}>
         <div className="container">
           <p style={{ fontSize: '0.6rem', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 600, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <span style={{ width: 28, height: 1, background: 'var(--gold)', display: 'block' }} />Packages & Details
+            <span style={{ width: 28, height: 1, background: 'var(--gold)', display: 'block' }} />
+Our Services
           </p>
           <h1 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem,7vw,6rem)', fontWeight: 300, color: 'white', lineHeight: 1.05 }}>
-            Transparent<br /><em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>pricing & packages</em>
+            Capturing Every
+<br />
+<em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>
+  Beautiful Moment
+</em>
           </h1>
         </div>
       </section>
@@ -46,15 +186,17 @@ export default function DetailsPage() {
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
             <p style={{ fontSize: '0.6rem', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 600, marginBottom: '1rem', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-              <span style={{ width: 28, height: 1, background: 'var(--gold)', display: 'block' }} />Our Packages
+              <span style={{ width: 28, height: 1, background: 'var(--gold)', display: 'block' }} />Photography Services
             </p>
             <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem,4vw,3.2rem)', fontWeight: 300, color: 'var(--charcoal)' }}>
-              Choose your <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>perfect package</em>
+              Explore Our <em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>
+  Premium Services
+</em>
             </h2>
-            <p style={{ fontSize: '0.85rem', color: 'var(--mist)', marginTop: '0.75rem', maxWidth: 500, margin: '0.75rem auto 0' }}>Contact us for current pricing — we offer seasonal offers and custom bundles.</p>
+            <p style={{ fontSize: '0.85rem', color: 'var(--mist)', marginTop: '0.75rem', maxWidth: 500, margin: '0.75rem auto 0' }}>From weddings and pre-wedding shoots to maternity and corporate photography, we create timeless memories with creativity and passion.</p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: '1.5rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(280px,1fr))', gap: '1.5rem' }}>
             {packages.map(pkg => (
               <div key={pkg.name} style={{ background: pkg.color, border: `1.5px solid ${pkg.popular ? 'var(--gold)' : 'var(--border)'}`, borderRadius: 2, padding: '2rem', position: 'relative', boxShadow: pkg.popular ? 'var(--shadow-med)' : 'var(--shadow-soft)', transition: 'transform 0.3s,box-shadow 0.3s' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-4px)'; (e.currentTarget as HTMLElement).style.boxShadow = 'var(--shadow-strong)'; }}
@@ -81,7 +223,7 @@ export default function DetailsPage() {
       </section>
 
       {/* FAQ */}
-      <section className="section" style={{ background: 'var(--ivory)', borderTop: '1px solid var(--border)' }}>
+      {/* <section className="section" style={{ background: 'var(--ivory)', borderTop: '1px solid var(--border)' }}>
         <div className="container" style={{ maxWidth: 760 }}>
           <div style={{ textAlign: 'center', marginBottom: '3rem' }}>
             <p style={{ fontSize: '0.6rem', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 600, marginBottom: '1rem', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -98,7 +240,7 @@ export default function DetailsPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       <AIChatbot />
     </PublicLayout>

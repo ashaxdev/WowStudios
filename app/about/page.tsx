@@ -16,10 +16,26 @@ const team = [
 ];
 
 const values = [
-  { icon: '◎', title: 'Artistry First', desc: 'Every frame is composed with intention — light, emotion, and story working in harmony.' },
-  { icon: '◈', title: 'Comfort & Care', desc: 'We create a warm, relaxed environment so your authentic moments shine naturally.' },
-  { icon: '◆', title: 'Premium Quality', desc: 'From capture to delivery, we maintain the highest standards in every detail.' },
-  { icon: '⬡', title: 'Your Memories', desc: 'We treat every session as if we\'re documenting our own family\'s story.' },
+  {
+    icon: '📸',
+    title: 'Experienced Professionals',
+    desc: 'Expert photographers with 5+ years of experience capturing weddings, portraits, events, and special moments.',
+  },
+  {
+    icon: '⏰',
+    title: 'Open 24 Hours',
+    desc: 'Available whenever you need us, offering flexible scheduling and round-the-clock support for your events.',
+  },
+  {
+    icon: '🎬',
+    title: 'Candid & Cinematic Style',
+    desc: 'We specialize in candid, natural, and cinematic storytelling that beautifully preserves genuine emotions.',
+  },
+  {
+    icon: '🌍',
+    title: 'Serving Across Tamil Nadu',
+    desc: 'Based in Tirunelveli and proudly serving clients throughout Tamil Nadu and destination locations beyond.',
+  },
 ];
 
 export default function AboutPage() {
@@ -33,7 +49,7 @@ export default function AboutPage() {
             <span style={{ width: 28, height: 1, background: 'var(--gold)', display: 'block' }} />Our Story
           </p>
           <h1 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2.8rem,7vw,6rem)', fontWeight: 300, color: 'white', lineHeight: 1.05, maxWidth: 700 }}>
-            Passion for<br /><em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>preserving moments</em>
+            Capturing Your <br /><em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>Most Precious Moments</em>
           </h1>
         </div>
       </section>
@@ -50,14 +66,14 @@ export default function AboutPage() {
                 Nine years of<br /><em style={{ color: 'var(--gold)', fontStyle: 'italic' }}>beautiful storytelling</em>
               </h2>
               <p style={{ fontSize: '0.9rem', color: 'var(--mist)', lineHeight: 1.95, marginBottom: '1.25rem' }}>
-                Wow Shotz Studio was born from a simple belief: every family deserves photographs that truly capture who they are — not just how they look, but how they feel.
+                Wow Shotz Studio is a professional photography and videography studio based in Tirunelveli, Tamil Nadu, with over 5 years of experience in preserving life’s most meaningful milestones.
               </p>
               <p style={{ fontSize: '0.88rem', color: 'var(--mist)', lineHeight: 1.95, marginBottom: '1.25rem', opacity: 0.85 }}>
-                Starting with a single camera and an overflowing passion, we have grown into Tirunelveli&apos;s most trusted photography destination, earning a 4.9★ Google rating and the love of thousands of families.
+               We are a team of passionate visual storytellers dedicated to delivering stunning imagery that you’ll treasure forever. From the grandeur of a wedding day to the delicate beauty of a newborn’s first moments, we approach every shoot with creativity, care, and an eye for authentic emotion.
               </p>
-              <p style={{ fontSize: '0.88rem', color: 'var(--mist)', lineHeight: 1.95, opacity: 0.75 }}>
+              {/* <p style={{ fontSize: '0.88rem', color: 'var(--mist)', lineHeight: 1.95, opacity: 0.75 }}>
                 Today our team of specialised photographers handles everything from intimate maternity sessions to grand wedding productions — each with the same care and artistry that defined us from day one.
-              </p>
+              </p> */}
             </div>
             <div style={{ position: 'relative' }}>
               <img src="https://images.unsplash.com/photo-1512070679279-8988d32161be?w=700&q=80" alt="Our Studio" style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', borderRadius: 2, boxShadow: 'var(--shadow-strong)' }} />
@@ -78,7 +94,7 @@ export default function AboutPage() {
             <p style={{ fontSize: '0.6rem', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 600, marginBottom: '1rem', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <span style={{ width: 28, height: 1, background: 'var(--gold)', display: 'block' }} />Our Values
             </p>
-            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem,4vw,3rem)', fontWeight: 300, color: 'var(--charcoal)' }}>What drives us</h2>
+            <h2 style={{ fontFamily: 'Cormorant Garamond, serif', fontSize: 'clamp(2rem,4vw,3rem)', fontWeight: 300, color: 'var(--charcoal)' }}>Why Choose Us</h2>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: '1.5rem' }}>
             {values.map(v => (
@@ -95,7 +111,7 @@ export default function AboutPage() {
       </section>
 
       {/* Team */}
-      <section className="section" style={{ background: 'var(--cream)', borderTop: '1px solid var(--border)' }}>
+      {/* <section className="section" style={{ background: 'var(--cream)', borderTop: '1px solid var(--border)' }}>
         <div className="container">
           <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>
             <p style={{ fontSize: '0.6rem', letterSpacing: '0.28em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 600, marginBottom: '1rem', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -116,7 +132,7 @@ export default function AboutPage() {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       <AIChatbot />
     </PublicLayout>
