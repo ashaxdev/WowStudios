@@ -9,11 +9,18 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1060.0",
+    "@aws-sdk/s3-request-presigner": "^3.1060.0",
+    "cloudinary": "^2.10.0",
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.14.0",
+    "mongoose": "^9.6.3",
+    "multer": "^2.1.1",
     "next": "16.2.5",
     "react": "19.2.4",
-    "react-dom": "19.2.4"
+    "react-dom": "19.2.4",
+    "sharp": "^0.34.5",
+    "slugify": "^1.6.9"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
