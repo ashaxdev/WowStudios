@@ -13,6 +13,7 @@
     "@aws-sdk/s3-request-presigner": "^3.1060.0",
     "cloudinary": "^2.10.0",
     "framer-motion": "^12.40.0",
+    "jsonwebtoken": "^9.0.3",
     "lucide-react": "^1.14.0",
     "mongoose": "^9.6.3",
     "multer": "^2.1.1",

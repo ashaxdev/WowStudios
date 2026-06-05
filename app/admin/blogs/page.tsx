@@ -1,52 +1,235 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import './blog.css';
 
-export default function AdminBlogsPage() {
+interface Blog {
+  _id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  coverImage?: string;
+  tags: string[];
+  published: boolean;
+  createdAt: string;
+}
+
+export default function BlogsAdmin() {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const inp: React.CSSProperties = { width:'100%', background:'rgba(255,255,255,0.05)', border:'1px solid rgba(212,168,83,0.25)', padding:'0.75rem 1rem', color:'white', fontFamily:'inherit', fontSize:'0.88rem', outline:'none', borderRadius:4, transition:'border-color 0.25s' };
+  const [form, setForm] = useState({ title: '', content: '', excerpt: '', tags: '', published: false });
+  const [preview, setPreview] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : '';
+
+  async function load() {
+    const res = await fetch('/api/blogs');
+    const data = await res.json();
+    setBlogs(data.data || []);
+    setLoading(false);
+  }
+
+  useEffect(() => { load(); }, []);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSaving(true);
+    const fd = new FormData();
+    Object.entries(form).forEach(([k, v]) => fd.append(k, String(v)));
+    if (fileRef.current?.files?.[0]) fd.append('coverImage', fileRef.current.files[0]);
+    try {
+      const res = await fetch('/api/blogs', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMsg('Blog created!');
+        setShowForm(false);
+        setForm({ title: '', content: '', excerpt: '', tags: '', published: false });
+        setPreview(null);
+        load();
+      } else setMsg(data.error || 'Failed');
+    } catch { setMsg('Error saving blog'); }
+    setSaving(false);
+  }
+
+  async function togglePublish(blog: Blog) {
+    await fetch(`/api/blogs/${blog._id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ published: !blog.published }),
+    });
+    load();
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this blog post?')) return;
+    await fetch(`/api/blogs/${id}`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    load();
+  }
+
   return (
-    <div style={{ maxWidth: 900 }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:'2rem', flexWrap:'wrap', gap:'1rem' }}>
+    <div className="blogs-admin">
+      {/* Header */}
+      <div className="page-header">
         <div>
-          <h1 style={{ fontFamily:'Playfair Display,serif', fontSize:'clamp(1.4rem,3vw,2rem)', fontWeight:700, color:'white', marginBottom:'0.3rem' }}>✍️ Blogs</h1>
-          <p style={{ color:'rgba(255,255,255,0.35)', fontSize:'0.82rem' }}>Manage blog posts</p>
+          <h1 className="page-title">Blogs</h1>
+          <p className="page-sub">
+            {blogs.length} posts · {blogs.filter(b => b.published).length} published
+          </p>
         </div>
-        <button onClick={() => setShowForm(v=>!v)} style={{ background:'linear-gradient(135deg,#D4A853,#B8935A)', color:'white', border:'none', padding:'0.65rem 1.4rem', borderRadius:4, cursor:'pointer', fontSize:'0.74rem', fontWeight:600, letterSpacing:'0.1em' }}>
-          {showForm ? '✕ Cancel' : '+ Add New'}
+        <button className="btn-primary" onClick={() => setShowForm(!showForm)}>
+          + New post
         </button>
       </div>
-      {showForm && (
-        <div style={{ background:'#1a1a1a', border:'1px solid rgba(212,168,83,0.2)', borderRadius:8, padding:'1.75rem', marginBottom:'1.5rem' }}>
-          <h3 style={{ color:'white', fontSize:'1rem', marginBottom:'1.25rem', fontFamily:'Playfair Display,serif' }}>Add New Blogs</h3>
-          <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem', marginBottom:'1rem' }}>
-            <div><label style={{ fontSize:'0.58rem', letterSpacing:'0.18em', textTransform:'uppercase', color:'#D4A853', display:'block', marginBottom:'0.35rem', fontWeight:600 }}>Title</label><input style={inp} placeholder="Enter title" onFocus={e=>(e.currentTarget.style.borderColor='#D4A853')} onBlur={e=>(e.currentTarget.style.borderColor='rgba(212,168,83,0.25)')} /></div>
-            <div><label style={{ fontSize:'0.58rem', letterSpacing:'0.18em', textTransform:'uppercase', color:'#D4A853', display:'block', marginBottom:'0.35rem', fontWeight:600 }}>Category</label><input style={inp} placeholder="Category" onFocus={e=>(e.currentTarget.style.borderColor='#D4A853')} onBlur={e=>(e.currentTarget.style.borderColor='rgba(212,168,83,0.25)')} /></div>
-          </div>
-          <div style={{ marginBottom:'1rem' }}><label style={{ fontSize:'0.58rem', letterSpacing:'0.18em', textTransform:'uppercase', color:'#D4A853', display:'block', marginBottom:'0.35rem', fontWeight:600 }}>Description</label><textarea rows={3} style={{ ...inp, resize:'vertical' }} placeholder="Description..." onFocus={e=>(e.currentTarget.style.borderColor='#D4A853')} onBlur={e=>(e.currentTarget.style.borderColor='rgba(212,168,83,0.25)')} /></div>
-          <button style={{ background:'linear-gradient(135deg,#D4A853,#B8935A)', color:'white', border:'none', padding:'0.65rem 1.5rem', borderRadius:4, cursor:'pointer', fontSize:'0.74rem', fontWeight:600, letterSpacing:'0.1em' }}>Save Blogs</button>
+
+      {/* Success message */}
+      {msg && (
+        <div className="alert-success" role="alert">
+          {msg}
         </div>
       )}
-      <div style={{ background:'#1a1a1a', border:'1px solid rgba(255,255,255,0.07)', borderRadius:8, overflow:'hidden' }}>
-        <div style={{ padding:'1rem 1.25rem', borderBottom:'1px solid rgba(255,255,255,0.07)' }}>
-          <input style={{ ...inp, padding:'0.6rem 1rem', maxWidth:320 }} placeholder="Search..." onFocus={e=>(e.currentTarget.style.borderColor='#D4A853')} onBlur={e=>(e.currentTarget.style.borderColor='rgba(212,168,83,0.25)')} />
-        </div>
-        {[1,2,3,4,5].map(i=>(
-          <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'1rem 1.25rem', borderBottom:'1px solid rgba(255,255,255,0.05)', flexWrap:'wrap', gap:'0.75rem' }}>
-            <div style={{ display:'flex', alignItems:'center', gap:'0.875rem' }}>
-              <div style={{ width:42, height:42, borderRadius:4, background:'rgba(212,168,83,0.1)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1rem', flexShrink:0 }}>✍️</div>
-              <div>
-                <p style={{ color:'rgba(255,255,255,0.85)', fontSize:'0.85rem', fontWeight:500, marginBottom:2 }}>Sample Blogs {i}</p>
-                <p style={{ color:'rgba(255,255,255,0.3)', fontSize:'0.72rem' }}>Category · Recently added</p>
+
+      {/* Create form */}
+      {showForm && (
+        <div className="form-card">
+          <h2 className="form-title">New blog post</h2>
+          <form onSubmit={handleSubmit} className="blog-form">
+            <div className="field">
+              <label htmlFor="bf-title">Title *</label>
+              <input
+                id="bf-title"
+                type="text"
+                value={form.title}
+                onChange={e => setForm({ ...form, title: e.target.value })}
+                required
+                placeholder="Blog title"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="bf-excerpt">Excerpt *</label>
+              <textarea
+                id="bf-excerpt"
+                value={form.excerpt}
+                onChange={e => setForm({ ...form, excerpt: e.target.value })}
+                required
+                rows={2}
+                placeholder="Short description (shown in listing)"
+              />
+            </div>
+
+            <div className="field">
+              <label htmlFor="bf-content">Content *</label>
+              <textarea
+                id="bf-content"
+                value={form.content}
+                onChange={e => setForm({ ...form, content: e.target.value })}
+                required
+                rows={8}
+                placeholder="Full blog content (supports HTML or Markdown)"
+                className="mono"
+              />
+            </div>
+
+            <div className="field-grid">
+              <div className="field">
+                <label htmlFor="bf-tags">Tags (comma separated)</label>
+                <input
+                  id="bf-tags"
+                  type="text"
+                  value={form.tags}
+                  onChange={e => setForm({ ...form, tags: e.target.value })}
+                  placeholder="photography, wedding, tips"
+                />
+              </div>
+              <div className="field">
+                <label>Cover image</label>
+                <div className="upload-zone" onClick={() => fileRef.current?.click()}>
+                  {preview
+                    ? <img src={preview} alt="Cover preview" className="upload-preview" />
+                    : <span>Click to upload cover</span>}
+                </div>
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={e => {
+                    const f = e.target.files?.[0];
+                    if (f) setPreview(URL.createObjectURL(f));
+                  }}
+                />
               </div>
             </div>
-            <div style={{ display:'flex', gap:'0.5rem' }}>
-              <button style={{ padding:'0.4rem 0.875rem', background:'transparent', border:'1px solid rgba(212,168,83,0.35)', color:'#D4A853', cursor:'pointer', fontSize:'0.7rem', borderRadius:4 }}>Edit</button>
-              <button style={{ padding:'0.4rem 0.875rem', background:'transparent', border:'1px solid rgba(244,138,138,0.35)', color:'#f48a8a', cursor:'pointer', fontSize:'0.7rem', borderRadius:4 }}>Delete</button>
+
+            <div className="checkbox-row">
+              <input
+                type="checkbox"
+                id="bf-pub"
+                checked={form.published}
+                onChange={e => setForm({ ...form, published: e.target.checked })}
+              />
+              <label htmlFor="bf-pub">Publish immediately</label>
             </div>
-          </div>
-        ))}
-        <div style={{ padding:'1rem 1.25rem' }}><p style={{ fontSize:'0.72rem', color:'rgba(255,255,255,0.25)' }}>Showing 5 items</p></div>
-      </div>
+
+            <div className="form-actions">
+              <button type="submit" className="btn-primary" disabled={saving}>
+                {saving ? 'Saving…' : 'Save post'}
+              </button>
+              <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Blog list */}
+      {loading ? (
+        <div className="state-loading">Loading…</div>
+      ) : blogs.length === 0 ? (
+        <div className="state-empty">
+          <div className="empty-icon">✍️</div>
+          <p>No blog posts yet.</p>
+        </div>
+      ) : (
+        <div className="blog-list">
+          {blogs.map(blog => (
+            <div key={blog._id} className="blog-item">
+              {blog.coverImage && (
+                <img src={blog.coverImage} alt="" className="blog-cover" />
+              )}
+              <div className="blog-body">
+                <div className="blog-head">
+                  <h3 className="blog-title">{blog.title}</h3>
+                  <span className={`badge ${blog.published ? 'badge-published' : 'badge-draft'}`}>
+                    {blog.published ? 'Published' : 'Draft'}
+                  </span>
+                </div>
+                <p className="blog-excerpt">{blog.excerpt}</p>
+                <div className="tag-list">
+                  {blog.tags.map(t => (
+                    <span key={t} className="tag">{t}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="blog-actions">
+                <button className="btn-action" onClick={() => togglePublish(blog)}>
+                  {blog.published ? 'Unpublish' : 'Publish'}
+                </button>
+                <button className="btn-action btn-danger" onClick={() => handleDelete(blog._id)}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
