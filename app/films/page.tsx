@@ -1,519 +1,325 @@
 'use client';
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+
+import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import Link from 'next/link';
-import PublicLayout from '@/components/layout/PublicLayout';
 
-const FILMS = [
-  {
-    id: 1,
-    videoId: 'AJo3bMc1Cyo',
-    title: 'Cinematic Nikkah',
-    category: 'Wedding',
-    location: 'Tirunelveli',
-    year: '2024',
-  },
-  {
-    id: 2,
-    videoId: 'WXsDeLBCdwc',
-    title: 'Kathija Wedding Highlights',
-    category: 'Wedding',
-    location: 'Madurai',
-    year: '2024',
-  },
-  {
-    id: 3,
-    videoId: '4XonNF1HIGM',
-    title: 'Sowmiya & Bala Engagement Highlights',
-    category: 'Wedding',
-    location: 'Nagercoil',
-    year: '2023',
-  },
-  {
-    id: 4,
-    videoId: 'lW2G-ao6Zk0',
-    title: 'Baby shower ceremony',
-    category: 'Maternity',
-    location: 'Tirunelveli',
-    year: '2023',
-  },
-  // {
-  //   id: 5,
-  //   videoId: 'PoRdBef-leA',
-  //   title: 'Silver Jubilee Celebration',
-  //   category: 'Event',
-  //   location: 'Chennai',
-  //   year: '2024',
-  // },
-  // {
-  //   id: 6,
-  //   videoId: 'l0Foh2MxZxc',
-  //   title: 'Childhood in Frames',
-  //   category: 'Kids',
-  //   location: 'Tirunelveli',
-  //   year: '2023',
-  // },
-];
-
-const CATEGORIES = ['All', ...Array.from(new Set(FILMS.map((f) => f.category)))];
-
-// ── Types ────────────────────────────────────────────────
-type Film = {
-  id: number;
-  videoId: string;
+interface Blog {
+  _id: string;
   title: string;
-  category: string;
-  location: string;
-  year: string;
-};
-
-type ModalProps = {
-  film: Film | null;
-  onClose: () => void;
-};
-
-type FilmCardProps = {
-  film: Film;
-  index: number;
-  onClick: (film: Film) => void;
-};
-
-// ── Light-box modal ─────────────────────────────────────
-// AnimatePresence wraps the conditional content so exit animations work correctly
-function Modal({ film, onClose }: ModalProps) {
-  return (
-    <AnimatePresence>
-      {film && (
-        <motion.div
-          key="overlay"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          onClick={onClose}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.93)',
-            zIndex: 1000,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '1rem',
-            backdropFilter: 'blur(6px)',
-          }}
-        >
-          <motion.div
-            key="box"
-            initial={{ opacity: 0, scale: 0.92, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.92 }}
-            transition={{ duration: 0.3 }}
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: '100%',
-              maxWidth: 860,
-              background: '#111',
-              borderRadius: 4,
-              overflow: 'hidden',
-              boxShadow: '0 40px 80px rgba(0,0,0,0.7)',
-              border: '1px solid rgba(180,145,85,0.25)',
-            }}
-          >
-            {/* Video embed */}
-            <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0 }}>
-              <iframe
-                src={`https://www.youtube.com/embed/${film.videoId}?autoplay=1&rel=0`}
-                title={film.title}
-                allow="autoplay; encrypted-media; fullscreen"
-                allowFullScreen
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                }}
-              />
-            </div>
-            {/* Caption bar */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.9rem 1.25rem',
-                background: '#0e0e0e',
-              }}
-            >
-              <div>
-                <p
-                  style={{
-                    fontFamily: "'Cormorant Garamond', serif",
-                    fontSize: '1.1rem',
-                    color: '#fff',
-                    margin: 0,
-                    fontWeight: 400,
-                  }}
-                >
-                  {film.title}
-                </p>
-                <p
-                  style={{
-                    fontSize: '0.6rem',
-                    letterSpacing: '0.2em',
-                    textTransform: 'uppercase',
-                    color: 'rgba(180,145,85,0.75)',
-                    margin: '3px 0 0',
-                    fontFamily: "'Montserrat', sans-serif",
-                  }}
-                >
-                  {film.category} · {film.location} · {film.year}
-                </p>
-              </div>
-              <button
-                onClick={onClose}
-                style={{
-                  background: 'none',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  color: '#fff',
-                  width: 32,
-                  height: 32,
-                  borderRadius: 2,
-                  cursor: 'pointer',
-                  fontSize: '1rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                ✕
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+  slug: string;
+  content: string;
+  excerpt: string;
+  coverImage?: string;
+  tags: string[];
+  published: boolean;
+  createdAt: string;
 }
 
-// ── Single film card ─────────────────────────────────────
-function FilmCard({ film, index, onClick }: FilmCardProps) {
-  const thumb = `https://img.youtube.com/vi/${film.videoId}/maxresdefault.jpg`;
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 28 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.65, delay: (index % 3) * 0.1 }}
-      onClick={() => onClick(film)}
-      style={{
-        cursor: 'pointer',
-        background: '#111',
-        border: '1px solid rgba(180,145,85,0.12)',
-        borderRadius: 3,
-        overflow: 'hidden',
-        transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-      }}
-      whileHover={{ y: -6, boxShadow: '0 24px 48px rgba(0,0,0,0.55)' }}
-    >
-      {/* Thumbnail */}
-      <div style={{ position: 'relative', paddingBottom: '56.25%', overflow: 'hidden' }}>
-        <img
-          src={thumb}
-          alt={film.title}
-          loading="lazy"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            width: '100%',
-            height: '100%',
-            objectFit: 'cover',
-            transition: 'transform 0.5s ease',
-          }}
-          onError={(e) => {
-            (e.target as HTMLImageElement).src = `https://img.youtube.com/vi/${film.videoId}/hqdefault.jpg`;
-          }}
-        />
-        {/* Dark overlay */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            background: 'rgba(0,0,0,0.35)',
-            transition: 'opacity 0.3s ease',
-          }}
-        />
-        {/* Play button */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div
-            style={{
-              width: 52,
-              height: 52,
-              borderRadius: '50%',
-              border: '2px solid rgba(255,255,255,0.85)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              backdropFilter: 'blur(4px)',
-              background: 'rgba(0,0,0,0.3)',
-              transition: 'transform 0.25s ease',
-            }}
-          >
-            <svg width="16" height="18" viewBox="0 0 16 18" fill="none">
-              <polygon points="2,1 15,9 2,17" fill="rgba(255,255,255,0.95)" />
-            </svg>
-          </div>
-        </div>
-        {/* Category badge */}
-        <div
-          style={{
-            position: 'absolute',
-            top: 12,
-            left: 12,
-            padding: '3px 10px',
-            background: 'rgba(180,145,85,0.9)',
-            fontSize: '0.55rem',
-            letterSpacing: '0.2em',
-            textTransform: 'uppercase',
-            color: '#fff',
-            fontFamily: "'Montserrat', sans-serif",
-            fontWeight: 600,
-            borderRadius: 1,
-          }}
-        >
-          {film.category}
-        </div>
-      </div>
+const ASPECT_VARIANTS = ['tall', 'square', 'wide', 'tall', 'wide', 'square'];
+const ASPECT_PADDING: Record<string, string> = {
+  tall: '133%',
+  square: '100%',
+  wide: '75%',
+};
 
-      {/* Card footer */}
-      <div style={{ padding: '0.9rem 1rem' }}>
-        <p
-          style={{
-            fontFamily: "'Cormorant Garamond', serif",
-            fontSize: '1.1rem',
-            color: '#fff',
-            margin: 0,
-            lineHeight: 1.3,
-            fontWeight: 400,
-          }}
-        >
-          {film.title}
-        </p>
-        <p
-          style={{
-            fontSize: '0.58rem',
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'rgba(255,255,255,0.38)',
-            margin: '5px 0 0',
-            fontFamily: "'Montserrat', sans-serif",
-          }}
-        >
-          {film.location} · {film.year}
-        </p>
-      </div>
-    </motion.div>
-  );
-}
+const styles = `
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap');
 
-// ── Main page ────────────────────────────────────────────
-export default function FilmsPage() {
-  const [active, setActive] = useState('All');
-  const [modal, setModal] = useState<Film | null>(null);
+  .blog-hero {
+    background: var(--charcoal);
+    padding-top: 140px;
+    padding-bottom: 4rem;
+  }
+  .blog-hero-eyebrow {
+    font-size: 0.6rem;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .blog-hero-rule { width: 28px; height: 1px; background: var(--gold); display: block; flex-shrink: 0; }
+  .blog-hero-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(3rem, 8vw, 6.5rem);
+    font-weight: 300;
+    color: white;
+    line-height: 1.0;
+    letter-spacing: -0.01em;
+  }
+  .blog-hero-title em { color: var(--gold); font-style: italic; }
 
-  const filtered =
-    active === 'All' ? FILMS : FILMS.filter((f) => f.category === active);
+  /* featured badge */
+  .featured-badge {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.58rem;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .featured-badge::before { content: ''; display: block; width: 20px; height: 1px; background: var(--gold); }
+
+  /* card overlay text */
+  .card-tag {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.55rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+  }
+  .card-title {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: clamp(0.95rem, 1.4vw, 1.2rem);
+    font-weight: 400;
+    color: #fff;
+    line-height: 1.2;
+    margin-bottom: 0.35rem;
+  }
+  .card-excerpt {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.58);
+    line-height: 1.6;
+    margin-bottom: 0.7rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .card-date { font-family: 'DM Sans', sans-serif; font-size: 0.62rem; color: rgba(255,255,255,0.38); }
+  .card-read-link {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.62rem;
+    color: var(--gold);
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: gap 0.2s ease;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .card-read-link:hover { gap: 0.55rem; }
+
+  .blog-state-wrap {
+    min-height: 60vh;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--mist); font-size: 0.9rem;
+  }
+
+  @media (max-width: 900px) {
+    .masonry-cols { columns: 2 !important; }
+  }
+  @media (max-width: 640px) {
+    .blog-hero { padding-top: 100px; padding-bottom: 2.5rem; }
+    .masonry-cols { columns: 1 !important; }
+    .featured-excerpt-text { display: none; }
+  }
+  @media (max-width: 480px) {
+    .blog-hero-title { font-size: clamp(2.6rem, 11vw, 3.5rem); }
+  }
+`;
+
+/* All sizing for image containers is via inline styles so nothing can override */
+export default function BlogClient() {
+  const [blogs, setBlogs] = useState<Blog[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => { fetchBlogs(); }, []);
+
+  async function fetchBlogs() {
+    try {
+      const res = await fetch('/api/blogs?published=true');
+      const data = await res.json();
+      if (data.success) setBlogs(data.data || []);
+    } catch (error) {
+      console.error('Failed to load blogs:', error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (loading) return (<><style>{styles}</style><div className="blog-state-wrap">Loading stories…</div></>);
+  if (!blogs.length) return (<><style>{styles}</style><div className="blog-state-wrap">No blog posts found.</div></>);
+
+  const [featured, ...rest] = blogs;
 
   return (
     <>
-      <PublicLayout>
-        {/* Import fonts */}
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Montserrat:wght@300;400;500;600&display=swap');
+      <style>{styles}</style>
 
-          *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      {/* Hero */}
+      <section className="blog-hero">
+        <div className="container">
+          <p className="blog-hero-eyebrow">
+            <span className="blog-hero-rule" />
+            Our Blog
+          </p>
+          <h1 className="blog-hero-title">
+            Stories &amp;<br />
+            <em>inspiration</em>
+          </h1>
+        </div>
+      </section>
 
-          body { background: #0a0a0a; }
+      <section className="section" style={{ background: 'var(--cream)' }}>
+        <div className="container">
 
-          /* Responsive grid */
-          .films-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1.5rem;
-          }
-          @media (max-width: 900px) {
-            .films-grid { grid-template-columns: repeat(2, 1fr); }
-          }
-          @media (max-width: 560px) {
-            .films-grid { grid-template-columns: 1fr; }
-          }
-
-          /* Filter pills scroll on mobile */
-          .filter-row {
-            display: flex;
-            gap: 0.6rem;
-            flex-wrap: wrap;
-          }
-          @media (max-width: 480px) {
-            .filter-row {
-              flex-wrap: nowrap;
-              overflow-x: auto;
-              padding-bottom: 4px;
-              -webkit-overflow-scrolling: touch;
-              scrollbar-width: none;
-            }
-            .filter-row::-webkit-scrollbar { display: none; }
-          }
-        `}</style>
-
-        <div style={{ minHeight: '100vh', background: '#0a0a0a', fontFamily: "'Montserrat', sans-serif" }}>
-
-          {/* ── Hero header ── */}
-          <div
+          {/* ── Featured: motion.div IS the container with explicit height ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 32 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
             style={{
               position: 'relative',
-              padding: 'clamp(64px,12vw,120px) clamp(20px,6vw,80px) clamp(40px,7vw,72px)',
-              textAlign: 'center',
+              height: '480px',
+              borderRadius: '6px',
               overflow: 'hidden',
+              marginBottom: '3rem',
+              boxShadow: '0 12px 56px rgba(0,0,0,0.18)',
             }}
           >
-            {/* Gold glow */}
-            <div
+            <img
+              src={featured.coverImage || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=1400&q=85'}
+              alt={featured.title}
               style={{
                 position: 'absolute',
-                top: 0,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '60%',
-                height: 280,
-                background: 'radial-gradient(ellipse, rgba(180,145,85,0.12) 0%, transparent 70%)',
-                pointerEvents: 'none',
+                top: 0, left: 0,
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                display: 'block',
               }}
             />
-            <motion.p
-              initial={{ opacity: 0, y: -12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
+            {/* gradient overlay + content */}
+            <Link
+              href={`/blog/${featured.slug}`}
               style={{
-                fontSize: '0.6rem',
-                letterSpacing: '0.38em',
-                textTransform: 'uppercase',
-                color: 'rgba(180,145,85,0.8)',
-                marginBottom: '1rem',
+                position: 'absolute',
+                top: 0, left: 0, right: 0, bottom: 0,
+                background: 'linear-gradient(to top, rgba(14,12,10,0.92) 0%, rgba(14,12,10,0.45) 45%, transparent 100%)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-end',
+                padding: '2.5rem 3rem',
+                textDecoration: 'none',
               }}
             >
-              Explore
-            </motion.p>
-            <motion.h1
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.1 }}
-              style={{
-                fontFamily: "'Cormorant Garamond', serif",
-                fontSize: 'clamp(2.8rem, 7vw, 6rem)',
+              <span className="featured-badge">Featured Article</span>
+              <h2 style={{
+                fontFamily: 'Cormorant Garamond, serif',
+                fontSize: 'clamp(1.8rem, 4vw, 3rem)',
                 fontWeight: 300,
                 color: '#fff',
-                lineHeight: 1.05,
-                letterSpacing: '-0.01em',
-              }}
-            >
-              Our Films
-            </motion.h1>
-            <motion.div
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: 1 }}
-              transition={{ duration: 0.8, delay: 0.4 }}
-              style={{
-                margin: '1.25rem auto',
-                height: 1,
-                width: 80,
-                background: 'linear-gradient(90deg, transparent, rgba(180,145,85,0.8), transparent)',
-                transformOrigin: 'center',
-              }}
-            />
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.5 }}
-              style={{
-                fontSize: 'clamp(0.75rem, 2vw, 0.88rem)',
-                color: 'rgba(255,255,255,0.4)',
-                letterSpacing: '0.06em',
-                maxWidth: 440,
-                margin: '0 auto 0.5rem',
+                lineHeight: 1.1,
+                marginBottom: '0.75rem',
+                letterSpacing: '-0.02em',
+                maxWidth: '640px',
+              }}>
+                {featured.title}
+              </h2>
+              <p className="featured-excerpt-text" style={{
+                fontFamily: 'DM Sans, sans-serif',
+                fontSize: '0.85rem',
+                color: 'rgba(255,255,255,0.65)',
                 lineHeight: 1.8,
-              }}
-            >
-              Cinematic stories, captured with heart.
-            </motion.p>
-          </div>
+                marginBottom: '1.25rem',
+                maxWidth: '520px',
+              }}>
+                {featured.excerpt}
+              </p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+                <span style={{ fontFamily: 'DM Sans, sans-serif', fontSize: '0.7rem', color: 'rgba(255,255,255,0.45)' }}>
+                  {new Date(featured.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                </span>
+                <span className="card-read-link">Read Article →</span>
+              </div>
+            </Link>
+          </motion.div>
 
-          {/* ── Filter pills ── */}
-          <div style={{ padding: '0 clamp(20px,6vw,80px) 2rem' }}>
-            <div className="filter-row">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setActive(cat)}
-                  style={{
-                    padding: '0.45rem 1.2rem',
-                    background: active === cat ? 'rgba(180,145,85,1)' : 'transparent',
-                    border: `1px solid ${active === cat ? 'rgba(180,145,85,1)' : 'rgba(255,255,255,0.18)'}`,
-                    color: active === cat ? '#fff' : 'rgba(255,255,255,0.5)',
-                    fontSize: '0.58rem',
-                    letterSpacing: '0.2em',
-                    textTransform: 'uppercase',
-                    fontFamily: "'Montserrat', sans-serif",
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    borderRadius: 2,
-                    transition: 'all 0.25s ease',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0,
-                  }}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Film grid ── */}
-          <div style={{ padding: '0 clamp(20px,6vw,80px) clamp(48px,10vw,96px)' }}>
-            <motion.div layout className="films-grid">
-              <AnimatePresence mode="popLayout">
-                {filtered.map((film, i) => (
-                  <motion.div
-                    key={film.id}
-                    layout
-                    initial={{ opacity: 0, scale: 0.94 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.94 }}
-                    transition={{ duration: 0.35 }}
+          {/* ── Masonry grid ── */}
+          {rest.length > 0 && (
+            <div className="masonry-cols" style={{ columns: 3, columnGap: '1.25rem' }}>
+              {rest.map((blog, i) => {
+                const aspect = ASPECT_VARIANTS[i % ASPECT_VARIANTS.length];
+                const paddingTop = ASPECT_PADDING[aspect];
+                return (
+                  <motion.article
+                    key={blog._id}
+                    initial={{ opacity: 0, y: 24 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.055, duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+                    style={{
+                      breakInside: 'avoid',
+                      marginBottom: '1.25rem',
+                      borderRadius: '6px',
+                      overflow: 'hidden',
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.14)',
+                      display: 'block',
+                    }}
                   >
-                    <FilmCard film={film} index={i} onClick={setModal} />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </motion.div>
-          </div>
+                    {/* padding-top trick: creates height proportional to width */}
+                    <div style={{ position: 'relative', width: '100%', paddingTop, overflow: 'hidden' }}>
+                      <img
+                        src={blog.coverImage || 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80'}
+                        alt={blog.title}
+                        style={{
+                          position: 'absolute',
+                          top: 0, left: 0,
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                      <Link
+                        href={`/blog/${blog.slug}`}
+                        style={{
+                          position: 'absolute',
+                          top: 0, left: 0, right: 0, bottom: 0,
+                          background: 'linear-gradient(to top, rgba(14,12,10,0.90) 0%, rgba(14,12,10,0.35) 50%, transparent 100%)',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'flex-end',
+                          padding: '1.25rem',
+                          textDecoration: 'none',
+                        }}
+                      >
+                        <span className="card-tag">Blog Post</span>
+                        <h3 className="card-title">{blog.title}</h3>
+                        <p className="card-excerpt">{blog.excerpt}</p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span className="card-date">
+                            {new Date(blog.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                          <span className="card-read-link">Read →</span>
+                        </div>
+                      </Link>
+                    </div>
+                  </motion.article>
+                );
+              })}
+            </div>
+          )}
 
         </div>
-
-        {/* ── Lightbox modal — always mounted so exit animation plays ── */}
-        <Modal film={modal} onClose={() => setModal(null)} />
-
-      </PublicLayout>
+      </section>
     </>
   );
 }
