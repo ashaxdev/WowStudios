@@ -37,19 +37,19 @@ const MODULES = [
     border: 'border-purple-100',
     stat: 'blogs',
   },
-  {
-    href: '/admin/testimonials',
-    title: 'Testimonials',
-    desc: 'Add and manage client testimonials with ratings.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-      </svg>
-    ),
-    color: 'bg-amber-50 text-amber-600',
-    border: 'border-amber-100',
-    stat: 'testimonials',
-  },
+  // {
+  //   href: '/admin/testimonials',
+  //   title: 'Testimonials',
+  //   desc: 'Add and manage client testimonials with ratings.',
+  //   icon: (
+  //     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+  //       <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
+  //     </svg>
+  //   ),
+  //   color: 'bg-amber-50 text-amber-600',
+  //   border: 'border-amber-100',
+  //   stat: 'testimonials',
+  // },
   {
     href: '/admin/videos',
     title: 'YouTube Videos',

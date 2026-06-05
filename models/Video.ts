@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Model } from 'mongoose';
 
 export interface IVideo extends Document {
   title: string;
@@ -7,17 +7,42 @@ export interface IVideo extends Document {
   description?: string;
   featured: boolean;
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const VideoSchema = new Schema<IVideo>(
   {
-    title: { type: String, required: true, trim: true },
-    youtubeId: { type: String, required: true, trim: true },
-    category: { type: String, required: true, trim: true },
-    description: { type: String, trim: true },
-    featured: { type: Boolean, default: false },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    youtubeId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    category: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    description: {
+      type: String,
+      default: '',
+    },
+    featured: {
+      type: Boolean,
+      default: false,
+    },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
-export default mongoose.models.Video || mongoose.model<IVideo>('Video', VideoSchema);
+const Video: Model<IVideo> =
+  mongoose.models.Video ||
+  mongoose.model<IVideo>('Video', VideoSchema);
+
+export default Video;
