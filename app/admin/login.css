@@ -1,0 +1,137 @@
+/* Page Layout */
+.login-page {
+  min-height: 100vh;
+  background: linear-gradient(to bottom right, #f8fafc, #f3f4f6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 450px;
+}
+
+/* Header */
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.logo-box {
+  width: 64px;
+  height: 64px;
+  background: #000;
+  border-radius: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.12);
+}
+
+.login-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.login-subtitle {
+  color: #6b7280;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+/* Card */
+.login-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 32px;
+  border: 1px solid #f3f4f6;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+/* Form */
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.form-input {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  font-size: 15px;
+  color: #111827;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-input::placeholder {
+  color: #9ca3af;
+}
+
+.form-input:focus {
+  outline: none;
+  background: #fff;
+  border-color: #6b7280;
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Error Message */
+.error-box {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+/* Button */
+.login-button {
+  width: 100%;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.login-button:hover {
+  background: #1f2937;
+}
+
+.login-button:active {
+  background: #111827;
+}
+
+.login-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Footer */
+.login-footer {
+  text-align: center;
+  margin-top: 24px;
+  font-size: 12px;
+  color: #9ca3af;
+}

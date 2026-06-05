@@ -1,0 +1,419 @@
+/* ─── photo.css — White Theme ───────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap');
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Root tokens ──────────────────────────────────────────────────── */
+:root {
+  --bg:          #f5f5f2;
+  --surface:     #ffffff;
+  --surface-2:   #f0f0ed;
+  --surface-3:   #e8e8e4;
+  --border:      rgba(0,0,0,0.08);
+  --border-hover:rgba(0,0,0,0.16);
+  --accent:      #2a6b3c;
+  --accent-dim:  rgba(42,107,60,0.08);
+  --text:        #1a1a1a;
+  --text-2:      #5a5a5a;
+  --text-3:      #a0a09c;
+  --danger:      #cc3333;
+  --danger-dim:  rgba(204,51,51,0.08);
+  --radius:      6px;
+  --radius-lg:   10px;
+  --font:        'DM Sans', sans-serif;
+  --mono:        'DM Mono', monospace;
+  --ease:        cubic-bezier(0.22,1,0.36,1);
+}
+
+/* ── Page shell ───────────────────────────────────────────────────── */
+.photos-page {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  padding: 2.5rem 2rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-header h1 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text);
+  font-family: var(--mono);
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ── Buttons ──────────────────────────────────────────────────────── */
+button {
+  font-family: var(--font);
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--text-2);
+  padding: 0.45rem 0.9rem;
+  border-radius: var(--radius);
+  transition: all 0.18s var(--ease);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+button:hover {
+  border-color: var(--border-hover);
+  color: var(--text);
+  background: var(--surface-3);
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Primary action button */
+.header-actions button:last-child,
+button[type="submit"] {
+  background: var(--accent-dim);
+  border-color: rgba(42,107,60,0.2);
+  color: var(--accent);
+}
+
+.header-actions button:last-child:hover,
+button[type="submit"]:hover {
+  background: rgba(42,107,60,0.14);
+  border-color: rgba(42,107,60,0.38);
+  color: var(--accent);
+}
+
+/* ── Alert ────────────────────────────────────────────────────────── */
+.alert {
+  font-size: 0.8rem;
+  font-family: var(--mono);
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1.25rem;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  border-left: 3px solid var(--accent);
+  animation: slideIn 0.22s var(--ease);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Panel (category manager) ─────────────────────────────────────── */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  animation: slideIn 0.2s var(--ease);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+
+.panel h2 {
+  font-size: 0.7rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-family: var(--mono);
+  color: var(--text-3);
+  margin-bottom: 1rem;
+}
+
+.panel form {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+/* Category row items */
+.panel > div {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.panel > div span {
+  flex: 1;
+  font-size: 0.875rem;
+  color: var(--text-2);
+}
+
+/* Danger button inside panel */
+.panel button:last-child {
+  background: var(--danger-dim);
+  border-color: rgba(204,51,51,0.16);
+  color: var(--danger);
+}
+
+.panel button:last-child:hover {
+  background: rgba(204,51,51,0.14);
+  border-color: rgba(204,51,51,0.32);
+}
+
+/* ── Inputs & Selects ─────────────────────────────────────────────── */
+input[type="text"],
+input[type="file"],
+select,
+.panel input {
+  font-family: var(--font);
+  font-size: 0.85rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 0.45rem 0.75rem;
+  border-radius: var(--radius);
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+input[type="text"]:focus,
+input[type="file"]:focus,
+select:focus,
+.panel input:focus {
+  border-color: rgba(42,107,60,0.35);
+  box-shadow: 0 0 0 3px rgba(42,107,60,0.07);
+}
+
+select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23a0a09c'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  padding-right: 2rem;
+}
+
+select option {
+  background: var(--surface);
+}
+
+input[type="file"] {
+  color: var(--text-2);
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  font-family: var(--font);
+  font-size: 0.78rem;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  padding: 0.3rem 0.65rem;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-right: 0.6rem;
+  transition: all 0.15s;
+}
+
+input[type="file"]::file-selector-button:hover {
+  border-color: var(--border-hover);
+  color: var(--text);
+}
+
+/* ── Upload box ───────────────────────────────────────────────────── */
+.upload-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: flex-end;
+  animation: slideIn 0.2s var(--ease);
+  box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+}
+
+.upload-box select {
+  width: auto;
+  min-width: 160px;
+}
+
+.upload-box input[type="file"] {
+  flex: 1;
+  min-width: 200px;
+}
+
+.upload-box img {
+  width: 80px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* ── Filter bar ───────────────────────────────────────────────────── */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.75rem;
+}
+
+.filters button {
+  font-size: 0.75rem;
+  padding: 0.35rem 0.8rem;
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text-3);
+}
+
+.filters button:hover {
+  color: var(--text);
+  border-color: var(--border-hover);
+  background: var(--surface);
+}
+
+.filters button:first-child {
+  color: var(--text-2);
+  border-color: var(--border-hover);
+}
+
+/* ── Photo grid ───────────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+}
+
+.grid > div {
+  background: var(--surface);
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 1;
+  transition: background 0.18s;
+}
+
+.grid > div:hover {
+  background: var(--surface-2);
+}
+
+.grid > div img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: opacity 0.2s;
+}
+
+.grid > div:hover img {
+  opacity: 0.55;
+}
+
+/* Overlay controls on hover */
+.grid > div p {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 0.5rem 0.6rem;
+  font-size: 0.72rem;
+  font-family: var(--mono);
+  color: var(--text-2);
+  background: linear-gradient(transparent, rgba(245,245,242,0.94));
+  transform: translateY(100%);
+  transition: transform 0.2s var(--ease);
+}
+
+.grid > div button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.55rem;
+  background: rgba(204,51,51,0.08);
+  border-color: rgba(204,51,51,0.2);
+  color: var(--danger);
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.18s, transform 0.18s var(--ease);
+}
+
+.grid > div:hover p {
+  transform: translateY(0);
+}
+
+.grid > div:hover button {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.grid > div button:hover {
+  background: var(--danger-dim);
+  border-color: rgba(204,51,51,0.4);
+}
+
+/* ── Loading ──────────────────────────────────────────────────────── */
+.photos-page > p {
+  color: var(--text-3);
+  font-size: 0.8rem;
+  font-family: var(--mono);
+  padding: 2rem 0;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .photos-page {
+    padding: 1.5rem 1rem;
+  }
+
+  .page-header h1 {
+    font-size: 0.9rem;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  }
+
+  .upload-box {
+    flex-direction: column;
+  }
+
+  .upload-box select,
+  .upload-box input[type="file"] {
+    width: 100%;
+  }
+}

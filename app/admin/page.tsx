@@ -1,179 +1,139 @@
 'use client';
-import { useEffect, useState } from 'react';
-import Link from 'next/link';
 
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import './login.css';
 
-const MODULES = [
-  {
-    href: '/admin/photos',
-    title: 'Photos',
-    desc: 'Manage gallery images by category. Upload to Cloudinary.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <rect x="2" y="6" width="20" height="15" rx="2"/>
-        <circle cx="12" cy="13" r="3.5"/>
-        <path d="M9 6V5a1 1 0 011-1h4a1 1 0 011 1v1"/>
-        <circle cx="18.5" cy="9.5" r="0.5" fill="currentColor"/>
-      </svg>
-    ),
-    color: 'bg-blue-50 text-blue-600',
-    border: 'border-blue-100',
-    stat: 'photos',
-  },
-  {
-    href: '/admin/blogs',
-    title: 'Blogs',
-    desc: 'Write and publish blog posts with cover images.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/>
-        <polyline points="14 2 14 8 20 8"/>
-        <line x1="16" y1="13" x2="8" y2="13"/>
-        <line x1="16" y1="17" x2="8" y2="17"/>
-        <polyline points="10 9 9 9 8 9"/>
-      </svg>
-    ),
-    color: 'bg-purple-50 text-purple-600',
-    border: 'border-purple-100',
-    stat: 'blogs',
-  },
-  {
-    href: '/admin/testimonials',
-    title: 'Testimonials',
-    desc: 'Add and manage client testimonials with ratings.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/>
-      </svg>
-    ),
-    color: 'bg-amber-50 text-amber-600',
-    border: 'border-amber-100',
-    stat: 'testimonials',
-  },
-  {
-    href: '/admin/videos',
-    title: 'YouTube Videos',
-    desc: 'Add YouTube videos by category for the frontend.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <path d="M22.54 6.42a2.78 2.78 0 00-1.94-1.96C18.88 4 12 4 12 4s-6.88 0-8.6.46A2.78 2.78 0 001.46 6.42 29 29 0 001 12a29 29 0 00.46 5.58 2.78 2.78 0 001.94 1.95C5.12 20 12 20 12 20s6.88 0 8.6-.47a2.78 2.78 0 001.94-1.95A29 29 0 0023 12a29 29 0 00-.46-5.58z"/>
-        <polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="currentColor" stroke="none"/>
-      </svg>
-    ),
-    color: 'bg-red-50 text-red-600',
-    border: 'border-red-100',
-    stat: 'videos',
-  },
-  {
-    href: '/admin/services',
-    title: 'Services',
-    desc: 'Manage services offered with pricing and features.',
-    icon: (
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-      </svg>
-    ),
-    color: 'bg-green-50 text-green-600',
-    border: 'border-green-100',
-    stat: 'services',
-  },
-];
+export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
-interface Stats {
-  photos: number;
-  blogs: number;
-  testimonials: number;
-  videos: number;
-  services: number;
-}
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-export default function AdminDashboard() {
-  const [stats, setStats] = useState<Stats>({ photos: 0, blogs: 0, testimonials: 0, videos: 0, services: 0 });
-  const [loadingStats, setLoadingStats] = useState(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
 
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const token = localStorage.getItem('admin_token');
-        const headers = { Authorization: `Bearer ${token}` };
-        const [photos, blogs, testimonials, videos, services] = await Promise.all([
-          fetch('/api/photos', { headers }).then(r => r.json()),
-          fetch('/api/blogs', { headers }).then(r => r.json()),
-          fetch('/api/testimonials', { headers }).then(r => r.json()),
-          fetch('/api/videos', { headers }).then(r => r.json()),
-          fetch('/api/services', { headers }).then(r => r.json()),
-        ]);
-        setStats({
-          photos: photos.data?.length || 0,
-          blogs: blogs.data?.length || 0,
-          testimonials: testimonials.data?.length || 0,
-          videos: videos.data?.length || 0,
-          services: services.data?.length || 0,
-        });
-      } catch {}
-      setLoadingStats(false);
+      const data = await res.json();
+
+      if (data.success) {
+        localStorage.setItem('admin_token', data.token);
+        router.push('/admin/dashboard');
+      } else {
+        setError('Invalid email or password');
+      }
+    } catch {
+      setError('Connection error. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    fetchStats();
-  }, []);
+  }
 
   return (
-    
-  <div className="admin-page">
-    {/* Header */}
-    <div className="dashboard-header">
-      <h1 className="dashboard-main-title">Dashboard</h1>
-      <p className="dashboard-main-subtitle">
-        Welcome back. Manage all your studio content below.
-      </p>
-    </div>
+    <div className="login-page">
+      <div className="login-container">
 
-    {/* Module Cards */}
-    <div className="dashboard-grid">
-      {MODULES.map(mod => (
-        <Link
-          key={mod.href}
-          href={mod.href}
-          className="dashboard-module-card"
-        >
-          <div className="dashboard-card-top">
-            <div className={`dashboard-icon-box ${mod.stat}`}>
-              {mod.icon}
-            </div>
-
-            <div className="dashboard-stats">
-              <div className="dashboard-count">
-                {loadingStats ? '—' : stats[mod.stat as keyof Stats]}
-              </div>
-              <div className="dashboard-total">total</div>
-            </div>
-          </div>
-
-          <h3 className="dashboard-card-title">
-            {mod.title}
-          </h3>
-
-          <p className="dashboard-card-description">
-            {mod.desc}
-          </p>
-
-          <div className="dashboard-manage">
-            Manage
+        <div className="login-header">
+          <div className="logo-box">
             <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
+              width="32"
+              height="32"
+              viewBox="0 0 32 32"
               fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              className="dashboard-arrow"
+              xmlns="http://www.w3.org/2000/svg"
             >
-              <path d="M5 12h14M12 5l7 7-7 7" />
+              <rect
+                x="4"
+                y="8"
+                width="24"
+                height="18"
+                rx="3"
+                stroke="white"
+                strokeWidth="2"
+              />
+              <circle
+                cx="16"
+                cy="17"
+                r="5"
+                stroke="white"
+                strokeWidth="2"
+              />
+              <circle cx="16" cy="17" r="2" fill="white" />
+              <path
+                d="M11 8V7C11 5.9 11.9 5 13 5H19C20.1 5 21 5.9 21 7V8"
+                stroke="white"
+                strokeWidth="2"
+              />
+              <circle cx="24" cy="12" r="1.5" fill="white" />
             </svg>
           </div>
-        </Link>
-      ))}
+
+          <h1 className="login-title">Studio Admin</h1>
+          <p className="login-subtitle">
+            Sign in to manage your studio
+          </p>
+        </div>
+
+        <div className="login-card">
+          <form onSubmit={handleLogin} className="login-form">
+
+            <div className="form-group">
+              <label>Email Address</label>
+              <input
+                type="email"
+                className="form-input"
+                placeholder="admin@photostudio.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label>Password</label>
+              <input
+                type="password"
+                className="form-input"
+                placeholder="Enter password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            {error && (
+              <div className="error-box">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="login-button"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
+
+          </form>
+        </div>
+
+        <p className="login-footer">
+          Photo Studio CMS © {new Date().getFullYear()}
+        </p>
+
+      </div>
     </div>
-  </div>
-);
-  
+  );
 }
