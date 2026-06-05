@@ -78,7 +78,41 @@ export default function Footer() {
         </div>
 
         <div style={{ borderTop: '1px solid rgba(250,247,242,0.07)', paddingTop: '1.5rem', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
-          <p style={{ fontSize: '0.72rem', color: 'rgba(250,247,242,0.22)' }}>© {new Date().getFullYear()} Wow Shotz Studio. All rights reserved.</p>
+          <div
+  style={{
+    // borderTop: '1px solid rgba(250,247,242,0.07)',
+    // paddingTop: '1.5rem',
+    // textAlign: 'center',
+  }}
+>
+  {/* <p
+    style={{
+      fontSize: '0.72rem',
+      color: 'rgba(250,247,242,0.22)',
+      marginBottom: '0.4rem',
+    }}
+  >
+    © {new Date().getFullYear()} Wow Shotz Studio. All rights reserved.
+  </p> */}
+
+  <p
+    style={{
+      fontSize: '0.75rem',
+      color: 'rgba(250,247,242,0.35)',
+      letterSpacing: '0.05em',
+    }}
+  >
+    Designed & Developed by{' '}
+    <span
+      style={{
+        color: 'var(--gold)',
+        fontWeight: 600,
+      }}
+    >
+      Nexira Solutions
+    </span>
+  </p>
+</div>
           <div style={{ display: 'flex', gap: '1.5rem', flexWrap: 'wrap' }}>
             {['Privacy Policy', 'Terms', 'Sitemap'].map(t => (
               <a key={t} href="#" style={{ fontSize: '0.68rem', color: 'rgba(250,247,242,0.2)', transition: 'color 0.2s' }}
@@ -87,7 +121,7 @@ export default function Footer() {
                 {t}
               </a>
             ))}
-            <Link href="/admin/login" style={{ fontSize: '0.65rem', color: 'rgba(250,247,242,0.1)' }}>Admin</Link>
+            {/* <Link href="/admin/login" style={{ fontSize: '0.65rem', color: 'rgba(250,247,242,0.1)' }}>Admin</Link> */}
           </div>
         </div>
       </div>

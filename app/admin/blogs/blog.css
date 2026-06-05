@@ -768,3 +768,19 @@ html, body {
     flex-direction: column;
   }
 }
+
+.back-btn {
+  border: none;
+  background: white;
+  color: #111827;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  transition: 0.3s;
+}
+
+.back-btn:hover {
+  transform: translateY(-2px);
+}

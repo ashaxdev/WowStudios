@@ -1,5 +1,7 @@
 'use client';
+import { useRouter } from 'next/navigation';
 
+// const router = useRouter();
 import { useEffect, useState, useRef, useCallback } from 'react';
 import './photo.css';
 
@@ -32,6 +34,8 @@ export default function PhotosAdmin() {
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [editCatName, setEditCatName] = useState('');
   const [catMsg, setCatMsg] = useState('');
+
+  const router = useRouter();
 
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -309,6 +313,12 @@ export default function PhotosAdmin() {
 
       {/* HEADER */}
       <div className="page-header">
+         <button
+      onClick={() => router.back()}
+      className="back-btn"
+    >
+      ← Back
+    </button>
         <h1>Photos</h1>
 
         <div className="header-actions">

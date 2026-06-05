@@ -130,7 +130,7 @@ export default function LoginPage() {
         </div>
 
         <p className="login-footer">
-          Photo Studio CMS © {new Date().getFullYear()}
+         Nexira Solution © {new Date().getFullYear()}
         </p>
 
       </div>

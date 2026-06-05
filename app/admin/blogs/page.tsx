@@ -1,4 +1,6 @@
 'use client';
+import { useRouter } from 'next/navigation';
+
 
 import { useEffect, useState, useRef } from 'react';
 import './blog.css';
@@ -38,6 +40,8 @@ export default function BlogsAdmin() {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [token, setToken] = useState('');
+
+  const router = useRouter();
 
   // null = create mode, string = edit mode (holds the blog _id)
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -229,8 +233,15 @@ export default function BlogsAdmin() {
 
   return (
     <div className="blogs-admin">
+      
       {/* Header */}
       <div className="page-header">
+           <button
+      onClick={() => router.back()}
+      className="back-btn"
+    >
+      ← Back
+    </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           {/* Back button — visible when form is open */}
           {showForm && (

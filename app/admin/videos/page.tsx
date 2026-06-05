@@ -1,4 +1,6 @@
 'use client';
+import { useRouter } from 'next/navigation';
+
 
 import { useEffect, useState } from 'react';
 import './video.css';
@@ -22,7 +24,7 @@ export default function VideosAdmin() {
   const [filterCat, setFilterCat] = useState('');
   const [apiCategories, setApiCategories] = useState<string[]>([]);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
-
+const router = useRouter();
   const [form, setForm] = useState({
     title: '',
     youtubeId: '',
@@ -167,6 +169,13 @@ export default function VideosAdmin() {
   return (
     <div className="videos-admin">
       <div className="admin-header">
+        
+         <button
+      onClick={() => router.back()}
+      className="back-btn"
+    >
+      ← Back
+    </button>
         <div>
           <h1 className="admin-title">YouTube Videos</h1>
           <p className="admin-subtitle">
