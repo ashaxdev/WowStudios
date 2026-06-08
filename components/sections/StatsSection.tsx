@@ -52,7 +52,7 @@ export default function StatsSection() {
 
       <style>{`
 
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;1,300;1,400&family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Didact+Gothic&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:ital,wght@0,300;1,300&family=Lato:ital,wght@0,300;0,400;0,700;1,300;1,400&display=swap');
 
         *{
           margin:0;
@@ -80,8 +80,10 @@ export default function StatsSection() {
           background:var(--white);
           overflow:hidden;
           position:relative;
-          font-family:'Didact Gothic',sans-serif;
+          font-family:'Lato', sans-serif;
         }
+
+        /* ── DESKTOP GRID (unchanged) ── */
 
         .s-grid{
           display:grid;
@@ -152,16 +154,19 @@ export default function StatsSection() {
         }
 
         .s-eyebrow span{
-          font-size:0.62rem;
-          letter-spacing:0.32em;
+          font-family:'Cinzel', serif;
+          font-size:0.52rem;
+          font-weight:400;
+          letter-spacing:0.28em;
           text-transform:uppercase;
           color:var(--brown-light);
         }
 
         .s-quote{
-          font-family:'Cormorant Garamond',serif;
+          font-family:'Cormorant Garamond', serif;
           font-size:1.2rem;
           font-style:italic;
+          font-weight:300;
           color:var(--brown);
           line-height:1.7;
           max-width:340px;
@@ -169,10 +174,13 @@ export default function StatsSection() {
         }
 
         .s-body{
+          font-family:'Lato', sans-serif;
           font-size:0.82rem;
+          font-weight:300;
           line-height:2;
           max-width:320px;
           color:#5e5247;
+          letter-spacing:0.01em;
         }
 
         .s-highlight{
@@ -192,8 +200,10 @@ export default function StatsSection() {
         }
 
         .s-vid-label{
-          font-size:0.58rem;
-          letter-spacing:0.28em;
+          font-family:'Cinzel', serif;
+          font-size:0.48rem;
+          font-weight:400;
+          letter-spacing:0.24em;
           text-transform:uppercase;
           color:var(--taupe);
           writing-mode:vertical-rl;
@@ -210,27 +220,40 @@ export default function StatsSection() {
           border:0.5px solid var(--border);
         }
 
-        /* MOBILE LOGO */
+        /* ── MOBILE LOGO (full-width banner) ── */
 
         .s-mobile-logo-wrap{
           display:none;
         }
 
-        /* MOBILE */
+        /* ── MOBILE MEDIA ROW (image + video side by side) ── */
+
+        .s-mobile-media{
+          display:none;
+        }
+
+        /* ── MOBILE BREAKPOINT ── */
 
         @media(max-width:640px){
 
+          /* Collapse desktop grid to single column */
           .s-grid{
             grid-template-columns:1fr;
+            grid-template-rows:auto auto auto;
             min-height:auto;
+            gap:0;
           }
 
-          .s-left,
+          /* Hide desktop left/right columns */
+          .s-left{
+            display:none;
+          }
+
           .s-right{
             display:none;
           }
 
-          /* FULL WIDTH LOGO */
+          /* ── FULL WIDTH LOGO BANNER ── */
 
           .s-mobile-logo-wrap{
             display:flex;
@@ -238,9 +261,11 @@ export default function StatsSection() {
             align-items:center;
             width:100%;
             overflow:hidden;
-            padding:0;
-            margin:0;
+            padding:5px;
+            margin:15px;
             line-height:0;
+            grid-column:1;
+            grid-row:1;
           }
 
           .s-mobile-logo{
@@ -252,11 +277,15 @@ export default function StatsSection() {
             padding:0;
           }
 
-          /* TEXT */
+          /* ── TEXT BLOCK — moved to row 3 (bottom) ── */
 
           .s-centre{
             border-right:none;
+            border-top:0.5px solid var(--border);
+            border-bottom:none;
             padding:2rem 1.2rem 2.5rem;
+            grid-column:1;
+            grid-row:3;
           }
 
           .s-eyebrow{
@@ -269,7 +298,7 @@ export default function StatsSection() {
           }
 
           .s-eyebrow span{
-            font-size:0.5rem;
+            font-size:0.44rem;
             line-height:1.6;
             text-align:center;
             letter-spacing:0.18em;
@@ -283,6 +312,83 @@ export default function StatsSection() {
           .s-body{
             font-size:0.74rem;
             line-height:1.9;
+          }
+
+          /* ── 2-COLUMN MEDIA ROW — moved to row 2 (below logo) ── */
+
+          .s-mobile-media{
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            grid-column:1;
+            grid-row:2;
+          }
+
+          /* Image cell */
+          .s-mobile-media__img{
+            border-right:0.5px solid var(--border);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:1.5rem 1rem;
+          }
+
+          .s-mobile-img-wrap{
+            width:100%;
+            max-width:160px;
+            aspect-ratio:190/270;
+            position:relative;
+          }
+
+          .s-mobile-img-wrap::before{
+            content:'';
+            position:absolute;
+            top:6px;
+            left:6px;
+            width:100%;
+            height:100%;
+            border:0.5px solid rgba(74,52,38,0.2);
+            opacity:0.5;
+          }
+
+          .s-mobile-img-wrap img{
+            width:100%;
+            height:100%;
+            object-fit:cover;
+            position:relative;
+            z-index:1;
+            display:block;
+          }
+
+          /* Video cell */
+          .s-mobile-media__vid{
+            display:flex;
+            flex-direction:column;
+            align-items:center;
+            justify-content:flex-end;
+            gap:0.75rem;
+            padding:1.5rem 1rem;
+          }
+
+          .s-mobile-vid-label{
+            font-family:'Cinzel', serif;
+            font-size:0.42rem;
+            font-weight:400;
+            letter-spacing:0.22em;
+            text-transform:uppercase;
+            color:var(--taupe);
+            writing-mode:vertical-rl;
+            transform:rotate(180deg);
+          }
+
+          .s-mobile-vid-frame{
+            width:100%;
+            max-width:120px;
+            aspect-ratio:9/16;
+            overflow:hidden;
+            position:relative;
+            border-radius:2px;
+            background:black;
+            border:0.5px solid var(--border);
           }
 
         }
@@ -305,7 +411,7 @@ export default function StatsSection() {
 
           </div>
 
-          {/* LEFT IMAGE */}
+          {/* LEFT IMAGE — desktop only */}
 
           <div className="s-left">
 
@@ -335,16 +441,14 @@ export default function StatsSection() {
 
               <div
                 className="s-eyebrow-rule"
-                style={{
-                  transform:'scaleX(-1)',
-                }}
+                style={{ transform: 'scaleX(-1)' }}
               />
 
             </div>
 
             <p className="s-quote">
-              “Capturing emotions, celebrations,
-              and memories that last forever”
+              "Capturing emotions, celebrations,
+              and memories that last forever"
             </p>
 
             <p className="s-body">
@@ -356,7 +460,7 @@ export default function StatsSection() {
 
           </div>
 
-          {/* RIGHT VIDEO */}
+          {/* RIGHT VIDEO — desktop only */}
 
           <div className="s-right">
 
@@ -367,6 +471,57 @@ export default function StatsSection() {
             <div
               className="s-vid-frame"
               ref={vfRef}
+            />
+
+          </div>
+
+        </div>
+
+        {/* MOBILE MEDIA ROW — image + video in 2 cols, outside grid */}
+
+        <div className="s-mobile-media">
+
+          {/* Image col */}
+          <div className="s-mobile-media__img">
+
+            <div className="s-mobile-img-wrap">
+
+              <img
+                src="photos/divya.jpg"
+                alt="Photography"
+              />
+
+            </div>
+
+          </div>
+
+          {/* Video col */}
+          <div className="s-mobile-media__vid">
+
+            <span className="s-mobile-vid-label">
+              Watch Our Story
+            </span>
+
+            <div
+              className="s-mobile-vid-frame"
+              ref={(el) => {
+                if (!el || el.childElementCount > 0) return;
+                const iframe = document.createElement('iframe');
+                iframe.src = VIDEO_URL;
+                iframe.allow = 'autoplay; encrypted-media; picture-in-picture';
+                iframe.allowFullscreen = true;
+                iframe.style.cssText = `
+                  position:absolute;
+                  top:50%;
+                  left:50%;
+                  width:300%;
+                  height:100%;
+                  transform:translate(-50%, -50%);
+                  border:none;
+                  pointer-events:none;
+                `;
+                el.appendChild(iframe);
+              }}
             />
 
           </div>
