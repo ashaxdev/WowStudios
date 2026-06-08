@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Photo {
@@ -10,11 +11,32 @@ interface Photo {
   imageUrl: string;
 }
 
+interface Video {
+  _id: string;
+  title?: string;
+  videoUrl: string;
+  thumbnailUrl?: string;
+}
+
+// Fixed tab order: All → Wedding → Pre Post Wedded → Baby Shoots → Newborn → Birthday Shoot → Birthday → Films
+const CATEGORY_ORDER = [
+  'All',
+  'Wedding',
+  'Pre Post Wedded',
+  'Baby Shoots',
+  'Newborn',
+  'Birthday Shoot',
+  'Birthday',
+  'Films',
+];
+
 export default function PortfolioClient() {
   const [active, setActive] = useState('All');
   const [photos, setPhotos] = useState<Photo[]>([]);
+  const [videos, setVideos] = useState<Video[]>([]);
   const [categories, setCategories] = useState<string[]>(['All']);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   // ---------------- FETCH CATEGORIES ----------------
   const loadCategories = async () => {
@@ -23,18 +45,29 @@ export default function PortfolioClient() {
       const data = await res.json();
 
       if (data.success) {
-        const cats = data.data.map((c: any) => c.name);
-        setCategories(['All', ...cats]);
+        const cats: string[] = data.data.map((c: any) => c.name);
+
+        // Sort fetched categories by preferred order, append any extras before Films
+        const sorted = [
+          ...CATEGORY_ORDER.filter(
+            (o) => o !== 'All' && o !== 'Films' && cats.includes(o)
+          ),
+          // Any categories from API not in our order list go after Birthday
+          ...cats.filter((c) => !CATEGORY_ORDER.includes(c)),
+        ];
+
+        setCategories(['All', ...sorted, 'Films']);
       }
     } catch (err) {
       console.error('Category load failed', err);
+      // Fallback: use the hardcoded order as-is
+      setCategories(CATEGORY_ORDER);
     }
   };
 
   // ---------------- FETCH PHOTOS ----------------
   const loadPhotos = async () => {
     setLoading(true);
-
     try {
       const url =
         active === 'All'
@@ -43,15 +76,25 @@ export default function PortfolioClient() {
 
       const res = await fetch(url);
       const data = await res.json();
-
-      if (data.success) {
-        setPhotos(data.data || []);
-      } else {
-        setPhotos([]);
-      }
+      setPhotos(data.success ? data.data || [] : []);
     } catch (err) {
       console.error('Photo load failed', err);
       setPhotos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ---------------- FETCH VIDEOS ----------------
+  const loadVideos = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/videos');
+      const data = await res.json();
+      setVideos(data.success ? data.data || [] : []);
+    } catch (err) {
+      console.error('Video load failed', err);
+      setVideos([]);
     } finally {
       setLoading(false);
     }
@@ -63,10 +106,14 @@ export default function PortfolioClient() {
   }, []);
 
   useEffect(() => {
-    loadPhotos();
+    if (active === 'Films') {
+      loadVideos();
+    } else {
+      loadPhotos();
+    }
   }, [active]);
 
-  const filtered = photos;
+  const isFilms = active === 'Films';
 
   return (
     <>
@@ -139,35 +186,131 @@ export default function PortfolioClient() {
               marginBottom: '3rem',
             }}
           >
-            {categories.map((c) => (
-              <button
-                key={c}
-                onClick={() => setActive(c)}
-                style={{
-                  padding: '0.5rem 1.25rem',
-                  fontSize: '0.68rem',
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  borderRadius: 2,
-                  border: '1.5px solid',
-                  transition: 'all 0.25s',
-                  background: active === c ? 'var(--gold)' : 'transparent',
-                  color: active === c ? 'white' : 'var(--mist)',
-                  borderColor:
-                    active === c ? 'var(--gold)' : 'var(--border-strong)',
-                }}
-              >
-                {c}
-              </button>
-            ))}
+            {categories.map((c) => {
+              const isFilmsTab = c === 'Films';
+              const isActive = active === c;
+              return (
+                <button
+                  key={c}
+                  onClick={() => isFilmsTab ? router.push('/films') : setActive(c)}
+                  style={{
+                    padding: '0.5rem 1.25rem',
+                    fontSize: '0.68rem',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    borderRadius: 2,
+                    border: '1.5px solid',
+                    transition: 'all 0.25s',
+                    background: isActive && !isFilmsTab
+                      ? 'var(--gold)'
+                      : isFilmsTab
+                      ? 'rgba(245,235,220,0.08)'
+                      : 'transparent',
+                    color: isActive && !isFilmsTab
+                      ? 'white'
+                      : isFilmsTab
+                      ? '#878785'
+                      : 'var(--mist)',
+                    borderColor: isFilmsTab
+                      ? '#c8a97a'
+                      : isActive
+                      ? 'var(--gold)'
+                      : 'var(--border-strong)',
+                    marginLeft: isFilmsTab ? '0.75rem' : 0,
+                  }}
+                >
+                  {isFilmsTab ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <svg width="8" height="9" viewBox="0 0 8 9" fill="none">
+                        <polygon points="0,0 8,4.5 0,9" fill="#878785" />
+                      </svg>
+                      Films
+                    </span>
+                  ) : c}
+                </button>
+              );
+            })}
           </div>
 
           {/* GRID */}
           {loading ? (
             <p style={{ color: 'var(--mist)' }}>Loading...</p>
+          ) : isFilms ? (
+            /* ---- FILMS GRID ---- */
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px,1fr))',
+                gap: '1rem',
+              }}
+            >
+              <AnimatePresence>
+                {videos.map((v, i) => (
+                  <motion.div
+                    key={v._id}
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={{ delay: i * 0.04, duration: 0.4 }}
+                    style={{
+                      position: 'relative',
+                      overflow: 'hidden',
+                      borderRadius: 2,
+                      aspectRatio: '16/9',
+                      cursor: 'pointer',
+                      background: 'var(--charcoal)',
+                    }}
+                  >
+                    <video
+                      src={v.videoUrl}
+                      poster={v.thumbnailUrl}
+                      controls
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                      }}
+                    />
+                    {v.title && (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          padding: '0.75rem 1rem',
+                          background:
+                            'linear-gradient(to top,rgba(44,36,22,0.85) 0%,transparent 100%)',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontFamily: 'Cormorant Garamond, serif',
+                            fontSize: '1rem',
+                            color: 'white',
+                            fontWeight: 400,
+                          }}
+                        >
+                          {v.title}
+                        </span>
+                      </div>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+
+              {videos.length === 0 && (
+                <p style={{ color: 'var(--mist)', gridColumn: '1/-1' }}>
+                  No films available yet.
+                </p>
+              )}
+            </div>
           ) : (
+            /* ---- PHOTOS GRID ---- */
             <div
               style={{
                 display: 'grid',
@@ -176,7 +319,7 @@ export default function PortfolioClient() {
               }}
             >
               <AnimatePresence>
-                {filtered.map((p, i) => (
+                {photos.map((p, i) => (
                   <motion.div
                     key={p._id}
                     initial={{ opacity: 0, scale: 0.96 }}
@@ -243,21 +386,16 @@ export default function PortfolioClient() {
                       >
                         {p.category}
                       </span>
-
-                      {/* <h3
-                        style={{
-                          fontFamily: 'Cormorant Garamond, serif',
-                          fontSize: '1.25rem',
-                          color: 'white',
-                          fontWeight: 400,
-                        }}
-                      >
-                        {p.title || p.category}
-                      </h3> */}
                     </div>
                   </motion.div>
                 ))}
               </AnimatePresence>
+
+              {photos.length === 0 && (
+                <p style={{ color: 'var(--mist)', gridColumn: '1/-1' }}>
+                  No photos in this category yet.
+                </p>
+              )}
             </div>
           )}
         </div>
