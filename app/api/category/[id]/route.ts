@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import connectDB from '@/lib/mongodb';
 import Category from '@/models/Category';
+import Photo from '@/models/Photo';
 
 // GET SINGLE CATEGORY
 export async function GET(
@@ -16,24 +17,15 @@ export async function GET(
 
     if (!category) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Category not found',
-        },
+        { success: false, error: 'Category not found' },
         { status: 404 }
       );
     }
 
-    return NextResponse.json({
-      success: true,
-      data: category,
-    });
+    return NextResponse.json({ success: true, data: category });
   } catch (error) {
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to fetch category',
-      },
+      { success: false, error: 'Failed to fetch category' },
       { status: 500 }
     );
   }
@@ -50,61 +42,54 @@ export async function PUT(
     const { id } = await params;
     const { name } = await req.json();
 
-    if (!name?.trim()) {
+    const newName = name?.trim();
+
+    if (!newName) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Category name is required',
-        },
+        { success: false, error: 'Category name is required' },
         { status: 400 }
       );
     }
 
-    const existing = await Category.findOne({
-      name: name.trim(),
-      _id: { $ne: id },
-    });
+    const existing = await Category.findOne({ name: newName, _id: { $ne: id } });
 
     if (existing) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Category already exists',
-        },
+        { success: false, error: 'Category already exists' },
         { status: 400 }
       );
     }
 
-    const category = await Category.findByIdAndUpdate(
+    // new: false → returns OLD document, update applied in same round-trip
+    const oldCategory = await Category.findByIdAndUpdate(
       id,
-      { name: name.trim() },
-      {
-        new: true,
-        runValidators: true,
-      }
+      { name: newName },
+      { new: false, runValidators: true }
     );
 
-    if (!category) {
+    if (!oldCategory) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Category not found',
-        },
+        { success: false, error: 'Category not found' },
         { status: 404 }
+      );
+    }
+
+    // Cascade update photos only if name actually changed
+    if (oldCategory.name !== newName) {
+      await Photo.updateMany(
+        { category: oldCategory.name },
+        { $set: { category: newName } }
       );
     }
 
     return NextResponse.json({
       success: true,
-      data: category,
+      data: { ...oldCategory.toObject(), name: newName },
       message: 'Category updated successfully',
     });
   } catch (error) {
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to update category',
-      },
+      { success: false, error: 'Failed to update category' },
       { status: 500 }
     );
   }
@@ -120,14 +105,15 @@ export async function DELETE(
 
     const { id } = await params;
 
-    const category = await Category.findByIdAndDelete(id);
+    // Delete category and cascade delete all its photos in parallel
+    const [category] = await Promise.all([
+      Category.findByIdAndDelete(id),
+      Photo.deleteMany({ category: id }),
+    ]);
 
     if (!category) {
       return NextResponse.json(
-        {
-          success: false,
-          error: 'Category not found',
-        },
+        { success: false, error: 'Category not found' },
         { status: 404 }
       );
     }
@@ -138,10 +124,7 @@ export async function DELETE(
     });
   } catch (error) {
     return NextResponse.json(
-      {
-        success: false,
-        error: 'Failed to delete category',
-      },
+      { success: false, error: 'Failed to delete category' },
       { status: 500 }
     );
   }
