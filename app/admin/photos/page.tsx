@@ -1,8 +1,19 @@
 'use client';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, useRef, useCallback } from 'react';
+import {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+  useMemo,
+  useReducer,
+  useTransition,
+} from 'react';
 import './photo.css';
 
+// ─────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────
 interface Photo {
   _id: string;
   category: string;
@@ -14,24 +25,102 @@ interface Category {
   name: string;
 }
 
+type BulkStatus = 'pending' | 'uploading' | 'done' | 'error';
+
 interface BulkFile {
-  id: string;           // local unique key
+  id: string;
   file: File;
   preview: string;
-  status: 'pending' | 'uploading' | 'done' | 'error';
+  status: BulkStatus;
   error?: string;
 }
 
+// ─────────────────────────────────────────────
+// Reducer – batches photo + category state updates
+// to avoid cascading re-renders
+// ─────────────────────────────────────────────
+interface AppState {
+  photos: Photo[];
+  categories: Category[];
+  loading: boolean;
+  msg: string;
+  catMsg: string;
+}
+
+type AppAction =
+  | { type: 'SET_PHOTOS'; photos: Photo[] }
+  | { type: 'OPTIMISTIC_DELETE'; id: string }
+  | { type: 'RESTORE_PHOTO'; photo: Photo }
+  | { type: 'SET_CATEGORIES'; categories: Category[] }
+  | { type: 'SET_LOADING'; loading: boolean }
+  | { type: 'SET_MSG'; msg: string }
+  | { type: 'SET_CAT_MSG'; msg: string };
+
+function appReducer(state: AppState, action: AppAction): AppState {
+  switch (action.type) {
+    case 'SET_PHOTOS':
+      return { ...state, photos: action.photos, loading: false };
+    case 'OPTIMISTIC_DELETE':
+      return { ...state, photos: state.photos.filter(p => p._id !== action.id) };
+    case 'RESTORE_PHOTO':
+      return { ...state, photos: [action.photo, ...state.photos] };
+    case 'SET_CATEGORIES':
+      return { ...state, categories: action.categories };
+    case 'SET_LOADING':
+      return { ...state, loading: action.loading };
+    case 'SET_MSG':
+      return { ...state, msg: action.msg };
+    case 'SET_CAT_MSG':
+      return { ...state, catMsg: action.msg };
+    default:
+      return state;
+  }
+}
+
+// ─────────────────────────────────────────────
+// Concurrency limiter for bulk uploads
+// ─────────────────────────────────────────────
+function createConcurrencyQueue(limit: number) {
+  let running = 0;
+  const queue: Array<() => void> = [];
+  return function run<T>(task: () => Promise<T>): Promise<T> {
+    return new Promise((resolve, reject) => {
+      const attempt = () => {
+        running++;
+        task()
+          .then(resolve)
+          .catch(reject)
+          .finally(() => {
+            running--;
+            if (queue.length > 0) queue.shift()!();
+          });
+      };
+      if (running < limit) attempt();
+      else queue.push(attempt);
+    });
+  };
+}
+
+// Up to 4 concurrent uploads
+const concurrentUpload = createConcurrencyQueue(4);
+
+// ─────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────
 export default function PhotosAdmin() {
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [state, dispatch] = useReducer(appReducer, {
+    photos: [],
+    categories: [],
+    loading: true,
+    msg: '',
+    catMsg: '',
+  });
 
   const [showForm, setShowForm] = useState(false);
   const [uploadMode, setUploadMode] = useState<'single' | 'bulk'>('single');
   const [filterCat, setFilterCat] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   // Single upload
   const [preview, setPreview] = useState<string | null>(null);
@@ -43,173 +132,102 @@ export default function PhotosAdmin() {
   const [bulkRunning, setBulkRunning] = useState(false);
   const bulkFileRef = useRef<HTMLInputElement>(null);
 
-  const [msg, setMsg] = useState('');
-
+  // Category panel
   const [showCatPanel, setShowCatPanel] = useState(false);
   const [newCatName, setNewCatName] = useState('');
   const [editingCat, setEditingCat] = useState<Category | null>(null);
   const [editCatName, setEditCatName] = useState('');
-  const [catMsg, setCatMsg] = useState('');
 
+  const [, startTransition] = useTransition();
   const router = useRouter();
 
   const token = useRef<string>(
     typeof window !== 'undefined'
-      ? localStorage.getItem('admin_token') ?? ''
+      ? (localStorage.getItem('admin_token') ?? '')
       : ''
   );
 
-  // ───────── Auto clear messages ─────────
+  // ── Auto-clear messages ──
   useEffect(() => {
-    if (!msg) return;
-    const t = setTimeout(() => setMsg(''), 3000);
+    if (!state.msg) return;
+    const t = setTimeout(() => dispatch({ type: 'SET_MSG', msg: '' }), 3000);
     return () => clearTimeout(t);
-  }, [msg]);
+  }, [state.msg]);
 
   useEffect(() => {
-    if (!catMsg) return;
-    const t = setTimeout(() => setCatMsg(''), 3000);
+    if (!state.catMsg) return;
+    const t = setTimeout(() => dispatch({ type: 'SET_CAT_MSG', msg: '' }), 3000);
     return () => clearTimeout(t);
-  }, [catMsg]);
+  }, [state.catMsg]);
 
-  // ───────── Preview cleanup ─────────
-  useEffect(() => {
-    return () => {
-      if (preview) URL.revokeObjectURL(preview);
-    };
-  }, [preview]);
+  // ── Preview URL cleanup ──
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => () => { bulkFiles.forEach(f => URL.revokeObjectURL(f.preview)); }, []);
 
-  // Cleanup bulk previews on unmount
-  useEffect(() => {
-    return () => {
-      bulkFiles.forEach(f => URL.revokeObjectURL(f.preview));
-    };
-  }, []); // eslint-disable-line
-
-  // ───────── Load Categories ─────────
+  // ─────────────────────────────────────────────
+  // Data fetching – single fetch, client-side filter
+  // ─────────────────────────────────────────────
   const loadCategories = useCallback(async () => {
     try {
       const res = await fetch('/api/category');
       const data = await res.json();
       if (data.success) {
-        setCategories(data.data || []);
+        dispatch({ type: 'SET_CATEGORIES', categories: data.data ?? [] });
       } else {
-        setCatMsg(data.error || 'Failed to load categories');
-        setCategories([]);
+        dispatch({ type: 'SET_CAT_MSG', msg: data.error ?? 'Failed to load categories' });
       }
     } catch {
-      setCatMsg('Failed to load categories');
-      setCategories([]);
+      dispatch({ type: 'SET_CAT_MSG', msg: 'Failed to load categories' });
     }
   }, []);
 
-  // ───────── Load Photos ─────────
+  // Fetch ALL photos once; filter client-side via useMemo
   const loadPhotos = useCallback(async () => {
-    setLoading(true);
-    const url = filterCat
-      ? `/api/photos?category=${encodeURIComponent(filterCat)}`
-      : '/api/photos';
+    dispatch({ type: 'SET_LOADING', loading: true });
     try {
-      const res = await fetch(url);
+      const res = await fetch('/api/photos');
       const data = await res.json();
       if (data.success) {
-        setPhotos(data.data || []);
+        dispatch({ type: 'SET_PHOTOS', photos: data.data ?? [] });
       } else {
-        setMsg(data.error || 'Failed to load photos');
-        setPhotos([]);
+        dispatch({ type: 'SET_MSG', msg: data.error ?? 'Failed to load photos' });
+        dispatch({ type: 'SET_PHOTOS', photos: [] });
       }
     } catch {
-      setMsg('Failed to load photos');
-      setPhotos([]);
-    } finally {
-      setLoading(false);
+      dispatch({ type: 'SET_MSG', msg: 'Failed to load photos' });
+      dispatch({ type: 'SET_PHOTOS', photos: [] });
     }
-  }, [filterCat]);
+  }, []);
 
-  // ───────── Initial Load ─────────
-  useEffect(() => { loadCategories(); }, [loadCategories]);
-  useEffect(() => { loadPhotos(); }, [loadPhotos]);
-  useEffect(() => { if (showForm) loadCategories(); }, [showForm, loadCategories]);
+  // ── Initial load ──
+  useEffect(() => {
+    loadCategories();
+    loadPhotos();
+  }, [loadCategories, loadPhotos]);
 
-  // ───────── Upload Photo (single) ─────────
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!fileRef.current?.files?.[0]) { setMsg('Please select an image'); return; }
-    if (!selectedCategory) { setMsg('Please select a category'); return; }
+  // ── Client-side filtered view (no refetch on filter change) ──
+  const filteredPhotos = useMemo(
+    () =>
+      filterCat
+        ? state.photos.filter(p => p.category === filterCat)
+        : state.photos,
+    [state.photos, filterCat]
+  );
 
-    setUploading(true);
-    const fd = new FormData();
-    fd.append('category', selectedCategory);
-    fd.append('image', fileRef.current.files[0]);
+  // ─────────────────────────────────────────────
+  // Single upload
+  // ─────────────────────────────────────────────
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!fileRef.current?.files?.[0]) { dispatch({ type: 'SET_MSG', msg: 'Please select an image' }); return; }
+      if (!selectedCategory) { dispatch({ type: 'SET_MSG', msg: 'Please select a category' }); return; }
 
-    try {
-      const res = await fetch('/api/photos', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token.current}` },
-        body: fd,
-      });
-      const data = await res.json();
-      if (data?.success) {
-        setMsg('Photo uploaded!');
-        setShowForm(false);
-        setSelectedCategory('');
-        setPreview('');
-        if (fileRef.current) fileRef.current.value = '';
-        loadPhotos();
-      } else {
-        setMsg(data?.error || 'Upload failed');
-      }
-    } catch {
-      setMsg('Upload failed');
-    } finally {
-      setUploading(false);
-    }
-  }
-
-  // ───────── Bulk: pick files ─────────
-  function handleBulkFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files || []);
-    const newEntries: BulkFile[] = files.map(file => ({
-      id: `${file.name}-${file.size}-${Math.random()}`,
-      file,
-      preview: URL.createObjectURL(file),
-      status: 'pending',
-    }));
-    setBulkFiles(prev => [...prev, ...newEntries]);
-    // reset input so same files can be re-added if needed
-    if (bulkFileRef.current) bulkFileRef.current.value = '';
-  }
-
-  // ───────── Bulk: remove one preview ─────────
-  function removeBulkFile(id: string) {
-    setBulkFiles(prev => {
-      const entry = prev.find(f => f.id === id);
-      if (entry) URL.revokeObjectURL(entry.preview);
-      return prev.filter(f => f.id !== id);
-    });
-  }
-
-  // ───────── Bulk: upload all pending ─────────
-  async function handleBulkUpload(e: React.FormEvent) {
-    e.preventDefault();
-    if (!selectedCategory) { setMsg('Please select a category'); return; }
-    const pending = bulkFiles.filter(f => f.status === 'pending');
-    if (pending.length === 0) { setMsg('No images to upload'); return; }
-
-    setBulkRunning(true);
-    setBulkProgress({ done: 0, total: pending.length });
-
-    for (let i = 0; i < pending.length; i++) {
-      const entry = pending[i];
-
-      // Mark as uploading
-      setBulkFiles(prev =>
-        prev.map(f => f.id === entry.id ? { ...f, status: 'uploading' } : f)
-      );
-
+      setUploading(true);
       const fd = new FormData();
       fd.append('category', selectedCategory);
-      fd.append('image', entry.file);
+      fd.append('image', fileRef.current.files[0]);
 
       try {
         const res = await fetch('/api/photos', {
@@ -218,152 +236,283 @@ export default function PhotosAdmin() {
           body: fd,
         });
         const data = await res.json();
-
         if (data?.success) {
-          setBulkFiles(prev =>
-            prev.map(f => f.id === entry.id ? { ...f, status: 'done' } : f)
-          );
+          dispatch({ type: 'SET_MSG', msg: 'Photo uploaded!' });
+          setShowForm(false);
+          setSelectedCategory('');
+          setPreview(null);
+          if (fileRef.current) fileRef.current.value = '';
+          loadPhotos();
         } else {
-          setBulkFiles(prev =>
-            prev.map(f =>
-              f.id === entry.id
-                ? { ...f, status: 'error', error: data?.error || 'Failed' }
-                : f
-            )
-          );
+          dispatch({ type: 'SET_MSG', msg: data?.error ?? 'Upload failed' });
         }
       } catch {
-        setBulkFiles(prev =>
-          prev.map(f =>
-            f.id === entry.id ? { ...f, status: 'error', error: 'Network error' } : f
-          )
-        );
+        dispatch({ type: 'SET_MSG', msg: 'Upload failed' });
+      } finally {
+        setUploading(false);
       }
+    },
+    [selectedCategory, loadPhotos]
+  );
 
-      setBulkProgress(p => ({ ...p, done: i + 1 }));
-    }
+  // ─────────────────────────────────────────────
+  // Bulk upload helpers
+  // ─────────────────────────────────────────────
+  const addBulkFiles = useCallback((files: File[]) => {
+    const newEntries: BulkFile[] = files
+      .filter(f => f.type.startsWith('image/'))
+      .map(file => ({
+        id: `${file.name}-${file.size}-${Math.random()}`,
+        file,
+        preview: URL.createObjectURL(file),
+        status: 'pending' as BulkStatus,
+      }));
+    setBulkFiles(prev => [...prev, ...newEntries]);
+  }, []);
 
-    setBulkRunning(false);
-    loadPhotos();
+  const handleBulkFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      addBulkFiles(Array.from(e.target.files ?? []));
+      if (bulkFileRef.current) bulkFileRef.current.value = '';
+    },
+    [addBulkFiles]
+  );
 
-    const errors = bulkFiles.filter(f => f.status === 'error').length;
-    setMsg(errors > 0 ? `Done. ${errors} file(s) failed.` : 'All photos uploaded!');
-  }
+  const removeBulkFile = useCallback((id: string) => {
+    setBulkFiles(prev => {
+      const entry = prev.find(f => f.id === id);
+      if (entry) URL.revokeObjectURL(entry.preview);
+      return prev.filter(f => f.id !== id);
+    });
+  }, []);
 
-  // ───────── Bulk: clear completed ─────────
-  function clearDone() {
+  // Concurrent bulk upload – up to 4 in parallel
+  const handleBulkUpload = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!selectedCategory) { dispatch({ type: 'SET_MSG', msg: 'Please select a category' }); return; }
+
+      const pending = bulkFiles.filter(f => f.status === 'pending');
+      if (pending.length === 0) { dispatch({ type: 'SET_MSG', msg: 'No images to upload' }); return; }
+
+      setBulkRunning(true);
+      setBulkProgress({ done: 0, total: pending.length });
+
+      let doneCount = 0;
+
+      await Promise.all(
+        pending.map(entry =>
+          concurrentUpload(async () => {
+            setBulkFiles(prev =>
+              prev.map(f => f.id === entry.id ? { ...f, status: 'uploading' } : f)
+            );
+
+            const fd = new FormData();
+            fd.append('category', selectedCategory);
+            fd.append('image', entry.file);
+
+            try {
+              const res = await fetch('/api/photos', {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token.current}` },
+                body: fd,
+              });
+              const data = await res.json();
+
+              setBulkFiles(prev =>
+                prev.map(f =>
+                  f.id === entry.id
+                    ? data?.success
+                      ? { ...f, status: 'done' }
+                      : { ...f, status: 'error', error: data?.error ?? 'Failed' }
+                    : f
+                )
+              );
+            } catch {
+              setBulkFiles(prev =>
+                prev.map(f =>
+                  f.id === entry.id ? { ...f, status: 'error', error: 'Network error' } : f
+                )
+              );
+            } finally {
+              doneCount++;
+              setBulkProgress(p => ({ ...p, done: doneCount }));
+            }
+          })
+        )
+      );
+
+      setBulkRunning(false);
+      loadPhotos();
+
+      setBulkFiles(prev => {
+        const errors = prev.filter(f => f.status === 'error').length;
+        dispatch({
+          type: 'SET_MSG',
+          msg: errors > 0 ? `Done. ${errors} file(s) failed.` : 'All photos uploaded!',
+        });
+        return prev;
+      });
+    },
+    [selectedCategory, bulkFiles, loadPhotos]
+  );
+
+  const clearDone = useCallback(() => {
     setBulkFiles(prev => {
       prev.filter(f => f.status === 'done').forEach(f => URL.revokeObjectURL(f.preview));
       return prev.filter(f => f.status !== 'done');
     });
-  }
+  }, []);
 
-  // ───────── Delete Photo ─────────
-  async function handleDelete(id: string) {
-    if (!confirm('Delete this photo?')) return;
-    try {
-      const res = await fetch(`/api/photos/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token.current}` },
-      });
-      const data = await res.json();
-      if (data?.success) { setMsg('Photo deleted'); loadPhotos(); }
-      else setMsg(data?.error || 'Failed to delete photo');
-    } catch {
-      setMsg('Failed to delete photo');
-    }
-  }
+  const clearAll = useCallback(() => {
+    setBulkFiles(prev => {
+      prev.forEach(f => URL.revokeObjectURL(f.preview));
+      return [];
+    });
+  }, []);
 
-  // ───────── Add Category ─────────
-  async function handleAddCategory(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newCatName.trim()) return;
-    try {
-      const res = await fetch('/api/category', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token.current}` },
-        body: JSON.stringify({ name: newCatName.trim() }),
-      });
-      const data = await res.json();
-      if (data?.success) { setCatMsg('Category added!'); setNewCatName(''); loadCategories(); }
-      else setCatMsg(data?.error || 'Failed to add category');
-    } catch {
-      setCatMsg('Failed to add category');
-    }
-  }
+  // ─────────────────────────────────────────────
+  // Delete – optimistic
+  // ─────────────────────────────────────────────
+  const handleDelete = useCallback(
+    async (photo: Photo) => {
+      if (!confirm('Delete this photo?')) return;
 
-  // ───────── Edit Category ─────────
-  async function handleEditCategory(e: React.FormEvent) {
-    e.preventDefault();
-    if (!editingCat || !editCatName.trim()) return;
-    const oldName = editingCat.name;
-    const newName = editCatName.trim();
-    try {
-      const res = await fetch(`/api/category/${editingCat._id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token.current}` },
-        body: JSON.stringify({ name: newName }),
-      });
-      const data = await res.json();
-      if (data?.success) {
-        setCatMsg('Category updated!');
-        setEditingCat(null);
-        setEditCatName('');
-        if (selectedCategory === oldName) setSelectedCategory(newName);
-        if (filterCat === oldName) setFilterCat(newName);
-        loadCategories();
-        loadPhotos();
-      } else {
-        setCatMsg(data?.error || 'Failed to update category');
-      }
-    } catch {
-      setCatMsg('Failed to update category');
-    }
-  }
+      // Remove immediately from UI
+      dispatch({ type: 'OPTIMISTIC_DELETE', id: photo._id });
 
-  // ───────── Delete Category ─────────
-  async function handleDeleteCategory(id: string) {
-    if (!confirm('Delete this category?')) return;
-    try {
-      const res = await fetch(`/api/category/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token.current}` },
-      });
-      const data = await res.json();
-      if (data?.success) {
-        setCatMsg('Category deleted');
-        const deleted = categories.find(c => c._id === id);
-        if (deleted) {
-          if (filterCat === deleted.name) setFilterCat('');
-          if (selectedCategory === deleted.name) setSelectedCategory('');
+      try {
+        const res = await fetch(`/api/photos/${photo._id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token.current}` },
+        });
+        const data = await res.json();
+        if (data?.success) {
+          dispatch({ type: 'SET_MSG', msg: 'Photo deleted' });
+        } else {
+          // Restore on failure
+          dispatch({ type: 'RESTORE_PHOTO', photo });
+          dispatch({ type: 'SET_MSG', msg: data?.error ?? 'Failed to delete photo' });
         }
-        loadCategories();
-        loadPhotos();
-      } else {
-        setCatMsg(data?.error || 'Failed to delete category');
+      } catch {
+        dispatch({ type: 'RESTORE_PHOTO', photo });
+        dispatch({ type: 'SET_MSG', msg: 'Failed to delete photo' });
       }
-    } catch {
-      setCatMsg('Failed to delete category');
-    }
-  }
+    },
+    []
+  );
 
-  // ───────── File Preview (single) ─────────
-  const handlePreview = (file?: File) => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-  };
+  // ─────────────────────────────────────────────
+  // Category CRUD
+  // ─────────────────────────────────────────────
+  const handleAddCategory = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!newCatName.trim()) return;
+      try {
+        const res = await fetch('/api/category', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token.current}` },
+          body: JSON.stringify({ name: newCatName.trim() }),
+        });
+        const data = await res.json();
+        if (data?.success) {
+          dispatch({ type: 'SET_CAT_MSG', msg: 'Category added!' });
+          setNewCatName('');
+          loadCategories();
+        } else {
+          dispatch({ type: 'SET_CAT_MSG', msg: data?.error ?? 'Failed to add category' });
+        }
+      } catch {
+        dispatch({ type: 'SET_CAT_MSG', msg: 'Failed to add category' });
+      }
+    },
+    [newCatName, loadCategories]
+  );
 
-  // ───────── Reset form on mode switch ─────────
-  function switchMode(mode: 'single' | 'bulk') {
+  const handleEditCategory = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!editingCat || !editCatName.trim()) return;
+      const oldName = editingCat.name;
+      const newName = editCatName.trim();
+      try {
+        const res = await fetch(`/api/category/${editingCat._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token.current}` },
+          body: JSON.stringify({ name: newName }),
+        });
+        const data = await res.json();
+        if (data?.success) {
+          dispatch({ type: 'SET_CAT_MSG', msg: 'Category updated!' });
+          setEditingCat(null);
+          setEditCatName('');
+          if (selectedCategory === oldName) setSelectedCategory(newName);
+          startTransition(() => {
+            if (filterCat === oldName) setFilterCat(newName);
+          });
+          loadCategories();
+          loadPhotos();
+        } else {
+          dispatch({ type: 'SET_CAT_MSG', msg: data?.error ?? 'Failed to update category' });
+        }
+      } catch {
+        dispatch({ type: 'SET_CAT_MSG', msg: 'Failed to update category' });
+      }
+    },
+    [editingCat, editCatName, selectedCategory, filterCat, loadCategories, loadPhotos]
+  );
+
+  const handleDeleteCategory = useCallback(
+    async (id: string) => {
+      if (!confirm('Delete this category?')) return;
+      const deleted = state.categories.find(c => c._id === id);
+      try {
+        const res = await fetch(`/api/category/${id}`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token.current}` },
+        });
+        const data = await res.json();
+        if (data?.success) {
+          dispatch({ type: 'SET_CAT_MSG', msg: 'Category deleted' });
+          if (deleted) {
+            if (filterCat === deleted.name) setFilterCat('');
+            if (selectedCategory === deleted.name) setSelectedCategory('');
+          }
+          loadCategories();
+          loadPhotos();
+        } else {
+          dispatch({ type: 'SET_CAT_MSG', msg: data?.error ?? 'Failed to delete category' });
+        }
+      } catch {
+        dispatch({ type: 'SET_CAT_MSG', msg: 'Failed to delete category' });
+      }
+    },
+    [state.categories, filterCat, selectedCategory, loadCategories, loadPhotos]
+  );
+
+  // ── Reset form on mode switch ──
+  const switchMode = useCallback((mode: 'single' | 'bulk') => {
     setUploadMode(mode);
     setSelectedCategory('');
     setPreview(null);
     if (fileRef.current) fileRef.current.value = '';
-    // don't wipe bulkFiles so user doesn't lose selection
-  }
+  }, []);
 
-  // ───────── UI ─────────
+  // ── Pending count (memoised) ──
+  const pendingCount = useMemo(
+    () => bulkFiles.filter(f => f.status === 'pending').length,
+    [bulkFiles]
+  );
+
+  const hasDone = useMemo(
+    () => bulkFiles.some(f => f.status === 'done'),
+    [bulkFiles]
+  );
+
+  // ─────────────────────────────────────────────
+  // Render
+  // ─────────────────────────────────────────────
   return (
     <div className="photos-page">
 
@@ -372,18 +521,18 @@ export default function PhotosAdmin() {
         <button onClick={() => router.back()} className="back-btn">← Back</button>
         <h1>Photos</h1>
         <div className="header-actions">
-          <button onClick={() => setShowCatPanel(!showCatPanel)}>Categories</button>
-          <button onClick={() => setShowForm(!showForm)}>+ Add Photo</button>
+          <button onClick={() => setShowCatPanel(v => !v)}>Categories</button>
+          <button onClick={() => setShowForm(v => !v)}>+ Add Photo</button>
         </div>
       </div>
 
-      {msg && <div className="alert">{msg}</div>}
+      {state.msg && <div className="alert">{state.msg}</div>}
 
       {/* CATEGORY PANEL */}
       {showCatPanel && (
         <div className="panel">
           <h2>Manage Categories</h2>
-          {catMsg && <div className="alert">{catMsg}</div>}
+          {state.catMsg && <div className="alert">{state.catMsg}</div>}
           <form onSubmit={handleAddCategory}>
             <input
               value={newCatName}
@@ -392,7 +541,7 @@ export default function PhotosAdmin() {
             />
             <button>Add</button>
           </form>
-          {categories.map(cat => (
+          {state.categories.map(cat => (
             <div key={cat._id}>
               {editingCat?._id === cat._id ? (
                 <form onSubmit={handleEditCategory}>
@@ -435,12 +584,9 @@ export default function PhotosAdmin() {
           </div>
 
           {/* Shared category picker */}
-          <select
-            value={selectedCategory}
-            onChange={e => setSelectedCategory(e.target.value)}
-          >
+          <select value={selectedCategory} onChange={e => setSelectedCategory(e.target.value)}>
             <option value="">Select category</option>
-            {categories.map(c => (
+            {state.categories.map(c => (
               <option key={c._id} value={c.name}>{c.name}</option>
             ))}
           </select>
@@ -452,12 +598,15 @@ export default function PhotosAdmin() {
                 ref={fileRef}
                 type="file"
                 accept="image/*"
-                onChange={e => handlePreview(e.target.files?.[0])}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (preview) URL.revokeObjectURL(preview);
+                  setPreview(URL.createObjectURL(file));
+                }}
               />
-              {preview && <img src={preview} width={120} alt="preview" />}
-              <button disabled={uploading}>
-                {uploading ? 'Uploading...' : 'Upload'}
-              </button>
+              {preview && <img src={preview} width={120} alt="preview" loading="lazy" />}
+              <button disabled={uploading}>{uploading ? 'Uploading…' : 'Upload'}</button>
             </form>
           )}
 
@@ -465,24 +614,13 @@ export default function PhotosAdmin() {
           {uploadMode === 'bulk' && (
             <form onSubmit={handleBulkUpload}>
 
-              {/* Drop zone / file picker */}
               <div
                 className="bulk-dropzone"
                 onClick={() => bulkFileRef.current?.click()}
                 onDragOver={e => e.preventDefault()}
                 onDrop={e => {
                   e.preventDefault();
-                  const files = Array.from(e.dataTransfer.files).filter(f =>
-                    f.type.startsWith('image/')
-                  );
-                  if (!files.length) return;
-                  const newEntries: BulkFile[] = files.map(file => ({
-                    id: `${file.name}-${file.size}-${Math.random()}`,
-                    file,
-                    preview: URL.createObjectURL(file),
-                    status: 'pending',
-                  }));
-                  setBulkFiles(prev => [...prev, ...newEntries]);
+                  addBulkFiles(Array.from(e.dataTransfer.files));
                 }}
               >
                 <input
@@ -494,10 +632,11 @@ export default function PhotosAdmin() {
                   onChange={handleBulkFileChange}
                 />
                 <span>📁 Click or drag & drop images here</span>
-                <small>{bulkFiles.length} image{bulkFiles.length !== 1 ? 's' : ''} selected</small>
+                <small>
+                  {bulkFiles.length} image{bulkFiles.length !== 1 ? 's' : ''} selected
+                </small>
               </div>
 
-              {/* Preview grid */}
               {bulkFiles.length > 0 && (
                 <>
                   <div className="bulk-preview-grid">
@@ -506,21 +645,19 @@ export default function PhotosAdmin() {
                         key={entry.id}
                         className={`bulk-preview-item bulk-status-${entry.status}`}
                       >
-                        <img src={entry.preview} alt={entry.file.name} />
+                        <img src={entry.preview} alt={entry.file.name} loading="lazy" />
 
-                        {/* Status badge */}
                         <span className="bulk-badge">
-                          {entry.status === 'pending' && '⏳'}
+                          {entry.status === 'pending'   && '⏳'}
                           {entry.status === 'uploading' && '⬆️'}
-                          {entry.status === 'done' && '✅'}
-                          {entry.status === 'error' && '❌'}
+                          {entry.status === 'done'      && '✅'}
+                          {entry.status === 'error'     && '❌'}
                         </span>
 
                         {entry.status === 'error' && (
                           <span className="bulk-error-msg">{entry.error}</span>
                         )}
 
-                        {/* Remove button (only if not uploading) */}
                         {entry.status !== 'uploading' && (
                           <button
                             type="button"
@@ -536,12 +673,14 @@ export default function PhotosAdmin() {
                     ))}
                   </div>
 
-                  {/* Progress bar (shown while running) */}
                   {bulkRunning && (
                     <div className="bulk-progress">
                       <div
                         className="bulk-progress-bar"
-                        style={{ width: `${(bulkProgress.done / bulkProgress.total) * 100}%` }}
+                        style={{
+                          width: `${(bulkProgress.done / bulkProgress.total) * 100}%`,
+                          transition: 'width 0.2s ease',
+                        }}
                       />
                       <span>{bulkProgress.done} / {bulkProgress.total}</span>
                     </div>
@@ -550,22 +689,13 @@ export default function PhotosAdmin() {
                   <div className="bulk-actions">
                     <button type="submit" disabled={bulkRunning}>
                       {bulkRunning
-                        ? `Uploading ${bulkProgress.done}/${bulkProgress.total}...`
-                        : `Upload ${bulkFiles.filter(f => f.status === 'pending').length} Photo${bulkFiles.filter(f => f.status === 'pending').length !== 1 ? 's' : ''}`}
+                        ? `Uploading ${bulkProgress.done}/${bulkProgress.total}…`
+                        : `Upload ${pendingCount} Photo${pendingCount !== 1 ? 's' : ''}`}
                     </button>
-                    {bulkFiles.some(f => f.status === 'done') && (
-                      <button type="button" onClick={clearDone}>
-                        Clear Done
-                      </button>
+                    {hasDone && (
+                      <button type="button" onClick={clearDone}>Clear Done</button>
                     )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        bulkFiles.forEach(f => URL.revokeObjectURL(f.preview));
-                        setBulkFiles([]);
-                      }}
-                      disabled={bulkRunning}
-                    >
+                    <button type="button" onClick={clearAll} disabled={bulkRunning}>
                       Clear All
                     </button>
                   </div>
@@ -576,26 +706,36 @@ export default function PhotosAdmin() {
         </div>
       )}
 
-      {/* FILTER */}
+      {/* FILTER – uses client-side filter, no network call */}
       <div className="filters">
-        <button onClick={() => setFilterCat('')}>All</button>
-        {categories.map(c => (
-          <button key={c._id} onClick={() => setFilterCat(c.name)}>
+        <button
+          onClick={() => startTransition(() => setFilterCat(''))}
+          className={filterCat === '' ? 'active' : ''}
+        >
+          All
+        </button>
+        {state.categories.map(c => (
+          <button
+            key={c._id}
+            onClick={() => startTransition(() => setFilterCat(c.name))}
+            className={filterCat === c.name ? 'active' : ''}
+          >
             {c.name}
           </button>
         ))}
       </div>
 
       {/* GRID */}
-      {loading ? (
-        <p>Loading...</p>
+      {state.loading ? (
+        <p>Loading…</p>
       ) : (
         <div className="grid">
-          {photos.map(p => (
+          {filteredPhotos.map(p => (
             <div key={p._id}>
-              <img src={p.imageUrl} alt={p.category} />
+              {/* Native lazy loading — no JS overhead */}
+              <img src={p.imageUrl} alt={p.category} loading="lazy" decoding="async" />
               <p>{p.category}</p>
-              <button onClick={() => handleDelete(p._id)}>Delete</button>
+              <button onClick={() => handleDelete(p)}>Delete</button>
             </div>
           ))}
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,7 +18,7 @@ interface Video {
   thumbnailUrl?: string;
 }
 
-// Fixed tab order: All → Wedding → Pre Post Wedded → Baby Shoots → Newborn → Birthday Shoot → Birthday → Films
+// Fixed tab order — defined outside component so it's never recreated
 const CATEGORY_ORDER = [
   'All',
   'Wedding',
@@ -30,6 +30,61 @@ const CATEGORY_ORDER = [
   'Films',
 ];
 
+// Skeleton card — avoids layout shift while images load
+function SkeletonCard({ aspect }: { aspect: string }) {
+  return (
+    <div
+      style={{
+        aspectRatio: aspect,
+        borderRadius: 2,
+        background: 'linear-gradient(90deg,#e8e0d4 25%,#f0e8de 50%,#e8e0d4 75%)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.4s infinite',
+      }}
+    />
+  );
+}
+
+// Lazily animated card — only triggers entrance when the card enters the viewport
+function LazyCard({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style: React.CSSProperties;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisible(true);
+          obs.disconnect();
+        }
+      },
+      { rootMargin: '120px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.97 }}
+      animate={visible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      style={style}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
 export default function PortfolioClient() {
   const [active, setActive] = useState('All');
   const [photos, setPhotos] = useState<Photo[]>([]);
@@ -38,85 +93,95 @@ export default function PortfolioClient() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // ---------------- FETCH CATEGORIES ----------------
-  const loadCategories = async () => {
-    try {
-      const res = await fetch('/api/category');
-      const data = await res.json();
+  // Keep a ref to the in-flight fetch so we can abort it on tab change
+  const fetchAbortRef = useRef<AbortController | null>(null);
 
-      if (data.success) {
-        const cats: string[] = data.data.map((c: any) => c.name);
-
-        // Sort fetched categories by preferred order, append any extras before Films
-        const sorted = [
-          ...CATEGORY_ORDER.filter(
-            (o) => o !== 'All' && o !== 'Films' && cats.includes(o)
-          ),
-          // Any categories from API not in our order list go after Birthday
-          ...cats.filter((c) => !CATEGORY_ORDER.includes(c)),
-        ];
-
-        setCategories(['All', ...sorted, 'Films']);
-      }
-    } catch (err) {
-      console.error('Category load failed', err);
-      // Fallback: use the hardcoded order as-is
-      setCategories(CATEGORY_ORDER);
-    }
-  };
-
-  // ---------------- FETCH PHOTOS ----------------
-  const loadPhotos = async () => {
-    setLoading(true);
-    try {
-      const url =
-        active === 'All'
-          ? '/api/photos'
-          : `/api/photos?category=${encodeURIComponent(active)}`;
-
-      const res = await fetch(url);
-      const data = await res.json();
-      setPhotos(data.success ? data.data || [] : []);
-    } catch (err) {
-      console.error('Photo load failed', err);
-      setPhotos([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ---------------- FETCH VIDEOS ----------------
-  const loadVideos = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/videos');
-      const data = await res.json();
-      setVideos(data.success ? data.data || [] : []);
-    } catch (err) {
-      console.error('Video load failed', err);
-      setVideos([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // ---------------- INIT ----------------
+  // ---------------- FETCH CATEGORIES (once) ----------------
   useEffect(() => {
-    loadCategories();
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/category');
+        const data = await res.json();
+        if (cancelled) return;
+
+        if (data.success) {
+          const cats: string[] = data.data.map((c: any) => c.name);
+          const sorted = [
+            ...CATEGORY_ORDER.filter(
+              (o) => o !== 'All' && o !== 'Films' && cats.includes(o)
+            ),
+            ...cats.filter((c) => !CATEGORY_ORDER.includes(c)),
+          ];
+          setCategories(['All', ...sorted, 'Films']);
+        }
+      } catch {
+        setCategories(CATEGORY_ORDER);
+      }
+    })();
+    return () => { cancelled = true; };
   }, []);
 
+  // ---------------- FETCH CONTENT on tab change ----------------
   useEffect(() => {
+    // Abort any previous in-flight request
+    fetchAbortRef.current?.abort();
+    const ctrl = new AbortController();
+    fetchAbortRef.current = ctrl;
+
+    // Films tab navigates away — no fetch needed
     if (active === 'Films') {
-      loadVideos();
-    } else {
-      loadPhotos();
+      router.push('/films');
+      return;
     }
+
+    setLoading(true);
+
+    const url =
+      active === 'All'
+        ? '/api/photos'
+        : `/api/photos?category=${encodeURIComponent(active)}`;
+
+    fetch(url, { signal: ctrl.signal })
+      .then((r) => r.json())
+      .then((data) => {
+        setPhotos(data.success ? data.data ?? [] : []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return; // stale, ignore
+        console.error('Photo load failed', err);
+        setPhotos([]);
+        setLoading(false);
+      });
+
+    return () => ctrl.abort();
   }, [active]);
 
-  const isFilms = active === 'Films';
+  // Preload data for a tab on hover (fires a background fetch into browser cache)
+  const prefetchTab = useCallback((cat: string) => {
+    if (cat === 'Films' || cat === active) return;
+    const url =
+      cat === 'All'
+        ? '/api/photos'
+        : `/api/photos?category=${encodeURIComponent(cat)}`;
+    // Fire-and-forget — result goes into HTTP cache
+    fetch(url, { priority: 'low' } as RequestInit).catch(() => {});
+  }, [active]);
+
+  // Memoised skeleton count so it doesn't thrash during re-renders
+  const skeletonCount = useMemo(() => (active === 'All' ? 12 : 6), [active]);
 
   return (
     <>
+      {/* Shimmer keyframe — injected once */}
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position: 200% 0 }
+          100% { background-position: -200% 0 }
+        }
+      `}</style>
+
       {/* HERO */}
       <section
         style={{
@@ -136,6 +201,7 @@ export default function PortfolioClient() {
             height: 400,
             border: '1px solid rgba(184,147,90,0.06)',
             borderRadius: '50%',
+            pointerEvents: 'none',
           }}
         />
 
@@ -153,7 +219,7 @@ export default function PortfolioClient() {
               gap: '0.75rem',
             }}
           >
-            <span style={{ width: 28, height: 1, background: 'var(--gold)' }} />
+            <span style={{ width: 28, height: 1, background: 'var(--gold)', display: 'inline-block' }} />
             Our Portfolio
           </p>
 
@@ -193,6 +259,7 @@ export default function PortfolioClient() {
                 <button
                   key={c}
                   onClick={() => isFilmsTab ? router.push('/films') : setActive(c)}
+                  onMouseEnter={() => prefetchTab(c)}
                   style={{
                     padding: '0.5rem 1.25rem',
                     fontSize: '0.68rem',
@@ -223,7 +290,7 @@ export default function PortfolioClient() {
                 >
                   {isFilmsTab ? (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      <svg width="8" height="9" viewBox="0 0 8 9" fill="none">
+                      <svg width="8" height="9" viewBox="0 0 8 9" fill="none" aria-hidden>
                         <polygon points="0,0 8,4.5 0,9" fill="#878785" />
                       </svg>
                       Films
@@ -236,78 +303,17 @@ export default function PortfolioClient() {
 
           {/* GRID */}
           {loading ? (
-            <p style={{ color: 'var(--mist)' }}>Loading...</p>
-          ) : isFilms ? (
-            /* ---- FILMS GRID ---- */
+            /* ---- SKELETON ---- */
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(320px,1fr))',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(280px,1fr))',
                 gap: '1rem',
               }}
             >
-              <AnimatePresence>
-                {videos.map((v, i) => (
-                  <motion.div
-                    key={v._id}
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ delay: i * 0.04, duration: 0.4 }}
-                    style={{
-                      position: 'relative',
-                      overflow: 'hidden',
-                      borderRadius: 2,
-                      aspectRatio: '16/9',
-                      cursor: 'pointer',
-                      background: 'var(--charcoal)',
-                    }}
-                  >
-                    <video
-                      src={v.videoUrl}
-                      poster={v.thumbnailUrl}
-                      controls
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                      }}
-                    />
-                    {v.title && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          padding: '0.75rem 1rem',
-                          background:
-                            'linear-gradient(to top,rgba(44,36,22,0.85) 0%,transparent 100%)',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily: 'Cormorant Garamond, serif',
-                            fontSize: '1rem',
-                            color: 'white',
-                            fontWeight: 400,
-                          }}
-                        >
-                          {v.title}
-                        </span>
-                      </div>
-                    )}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-
-              {videos.length === 0 && (
-                <p style={{ color: 'var(--mist)', gridColumn: '1/-1' }}>
-                  No films available yet.
-                </p>
-              )}
+              {Array.from({ length: skeletonCount }).map((_, i) => (
+                <SkeletonCard key={i} aspect="3/4" />
+              ))}
             </div>
           ) : (
             /* ---- PHOTOS GRID ---- */
@@ -318,78 +324,74 @@ export default function PortfolioClient() {
                 gap: '1rem',
               }}
             >
-              <AnimatePresence>
-                {photos.map((p, i) => (
-                  <motion.div
-                    key={p._id}
-                    initial={{ opacity: 0, scale: 0.96 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.96 }}
-                    transition={{ delay: i * 0.04, duration: 0.4 }}
+              {photos.map((p) => (
+                <LazyCard
+                  key={p._id}
+                  style={{
+                    position: 'relative',
+                    overflow: 'hidden',
+                    borderRadius: 2,
+                    aspectRatio: '3/4',
+                    cursor: 'pointer',
+                    background: 'var(--linen)',
+                  }}
+                >
+                  <img
+                    src={p.imageUrl}
+                    alt={p.title || p.category}
+                    loading="lazy"
+                    decoding="async"
+                    width={560}
+                    height={747}
                     style={{
-                      position: 'relative',
-                      overflow: 'hidden',
-                      borderRadius: 2,
-                      aspectRatio: '3/4',
-                      cursor: 'pointer',
-                      background: 'var(--linen)',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transition: 'transform 0.55s ease',
+                      display: 'block',
                     }}
-                  >
-                    <img
-                      src={p.imageUrl}
-                      alt={p.title || p.category}
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover',
-                        transition: 'transform 0.6s ease',
-                      }}
-                      onMouseEnter={(e) =>
-                        ((e.currentTarget as HTMLElement).style.transform =
-                          'scale(1.06)')
-                      }
-                      onMouseLeave={(e) =>
-                        ((e.currentTarget as HTMLElement).style.transform =
-                          'scale(1)')
-                      }
-                    />
+                    onMouseEnter={(e) =>
+                      ((e.currentTarget as HTMLElement).style.transform = 'scale(1.06)')
+                    }
+                    onMouseLeave={(e) =>
+                      ((e.currentTarget as HTMLElement).style.transform = 'scale(1)')
+                    }
+                  />
 
-                    {/* OVERLAY */}
-                    <div
+                  {/* OVERLAY */}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background:
+                        'linear-gradient(to top,rgba(44,36,22,0.85) 0%,transparent 50%)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'flex-end',
+                      padding: '1.25rem',
+                      opacity: 0,
+                      transition: 'opacity 0.35s',
+                    }}
+                    onMouseEnter={(e) =>
+                      ((e.currentTarget as HTMLElement).style.opacity = '1')
+                    }
+                    onMouseLeave={(e) =>
+                      ((e.currentTarget as HTMLElement).style.opacity = '0')
+                    }
+                  >
+                    <span
                       style={{
-                        position: 'absolute',
-                        inset: 0,
-                        background:
-                          'linear-gradient(to top,rgba(44,36,22,0.85) 0%,transparent 50%)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'flex-end',
-                        padding: '1.25rem',
-                        opacity: 0,
-                        transition: 'opacity 0.4s',
+                        fontSize: '0.56rem',
+                        letterSpacing: '0.2em',
+                        textTransform: 'uppercase',
+                        color: 'var(--gold-light)',
                       }}
-                      onMouseEnter={(e) =>
-                        ((e.currentTarget as HTMLElement).style.opacity = '1')
-                      }
-                      onMouseLeave={(e) =>
-                        ((e.currentTarget as HTMLElement).style.opacity = '0')
-                      }
                     >
-                      <span
-                        style={{
-                          fontSize: '0.56rem',
-                          letterSpacing: '0.2em',
-                          textTransform: 'uppercase',
-                          color: 'var(--gold-light)',
-                          marginBottom: 4,
-                        }}
-                      >
-                        {p.category}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
+                      {p.category}
+                    </span>
+                  </div>
+                </LazyCard>
+              ))}
 
               {photos.length === 0 && (
                 <p style={{ color: 'var(--mist)', gridColumn: '1/-1' }}>
