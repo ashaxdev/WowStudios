@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Category from '@/models/Category';
+import dbConnect from '@/lib/mongodb';
 import Photo from '@/models/Photo';
+import Category from '@/models/Category';
+import { isAuthenticated } from '@/lib/auth';
 
 // GET SINGLE CATEGORY
 export async function GET(
@@ -9,8 +10,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await connectDB();
-
+    await dbConnect();
     const { id } = await params;
 
     const category = await Category.findById(id);
@@ -36,12 +36,18 @@ export async function PUT(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  if (!isAuthenticated(req)) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
   try {
-    await connectDB();
+    await dbConnect();
 
     const { id } = await params;
     const { name } = await req.json();
-
     const newName = name?.trim();
 
     if (!newName) {
@@ -51,16 +57,16 @@ export async function PUT(
       );
     }
 
-    const existing = await Category.findOne({ name: newName, _id: { $ne: id } });
-
-    if (existing) {
+    // Check for duplicate name (excluding current category)
+    const duplicate = await Category.findOne({ name: newName, _id: { $ne: id } });
+    if (duplicate) {
       return NextResponse.json(
         { success: false, error: 'Category already exists' },
         { status: 400 }
       );
     }
 
-    // new: false → returns OLD document, update applied in same round-trip
+    // new: false → returns OLD document so we can get the old name
     const oldCategory = await Category.findByIdAndUpdate(
       id,
       { name: newName },
@@ -75,19 +81,22 @@ export async function PUT(
     }
 
     // Cascade update photos only if name actually changed
+    let photosModified = 0;
     if (oldCategory.name !== newName) {
-      await Photo.updateMany(
+      const photoResult = await Photo.updateMany(
         { category: oldCategory.name },
         { $set: { category: newName } }
       );
+      photosModified = photoResult.modifiedCount;
     }
 
     return NextResponse.json({
       success: true,
+      message: `Category renamed "${oldCategory.name}" → "${newName}", updated ${photosModified} photo(s)`,
       data: { ...oldCategory.toObject(), name: newName },
-      message: 'Category updated successfully',
     });
   } catch (error) {
+    console.error('Edit Category Error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to update category' },
       { status: 500 }
@@ -100,16 +109,19 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    await connectDB();
+  if (!isAuthenticated(req)) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
 
+  try {
+    await dbConnect();
     const { id } = await params;
 
-    // Delete category and cascade delete all its photos in parallel
-    const [category] = await Promise.all([
-      Category.findByIdAndDelete(id),
-      Photo.deleteMany({ category: id }),
-    ]);
+    // Get category first so we can delete photos by category NAME not id
+    const category = await Category.findByIdAndDelete(id);
 
     if (!category) {
       return NextResponse.json(
@@ -118,11 +130,15 @@ export async function DELETE(
       );
     }
 
+    // Cascade delete all photos belonging to this category
+    await Photo.deleteMany({ category: category.name });
+
     return NextResponse.json({
       success: true,
       message: 'Category deleted successfully',
     });
   } catch (error) {
+    console.error('Delete Category Error:', error);
     return NextResponse.json(
       { success: false, error: 'Failed to delete category' },
       { status: 500 }

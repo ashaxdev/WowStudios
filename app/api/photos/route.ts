@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Photo from '@/models/Photo';
+import Category from '@/models/Category';
 import { uploadImage } from '@/lib/cloudinary';
 import { isAuthenticated } from '@/lib/auth';
 
@@ -105,6 +106,67 @@ export async function POST(req: NextRequest) {
         success: false,
         error: 'Failed to upload photo',
       },
+      { status: 500 }
+    );
+  }
+}
+
+
+// BULK REPLACE CATEGORY
+export async function PATCH(req: NextRequest) {
+  if (!isAuthenticated(req)) {
+    return NextResponse.json(
+      { success: false, error: 'Unauthorized' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    await dbConnect();
+
+    const { oldCategory, newCategory } = await req.json();
+
+    if (!oldCategory?.trim() || !newCategory?.trim()) {
+      return NextResponse.json(
+        { success: false, error: 'Both oldCategory and newCategory are required' },
+        { status: 400 }
+      );
+    }
+
+    // Update the category name in the Category table
+    const categoryResult = await Category.findOneAndUpdate(
+      { name: oldCategory.trim() },
+      { $set: { name: newCategory.trim() } },
+      { new: true }
+    );
+
+    if (!categoryResult) {
+      return NextResponse.json(
+        { success: false, error: `No category found with name "${oldCategory}"` },
+        { status: 404 }
+      );
+    }
+
+    // Update the category name in the Photo table
+    const photoResult = await Photo.updateMany(
+      { category: oldCategory.trim() },
+      { $set: { category: newCategory.trim() } }
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: `Replaced category "${oldCategory}" → "${newCategory}" on ${photoResult.modifiedCount} photo(s)`,
+      data: {
+        category: categoryResult,
+        photosMatched: photoResult.matchedCount,
+        photosModified: photoResult.modifiedCount,
+      },
+    });
+  } catch (error) {
+    console.error('BULK REPLACE Category Error:', error);
+
+    return NextResponse.json(
+      { success: false, error: 'Failed to replace category' },
       { status: 500 }
     );
   }

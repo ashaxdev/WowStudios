@@ -20,7 +20,6 @@ interface Video {
 
 // Fixed tab order — defined outside component so it's never recreated
 const CATEGORY_ORDER = [
-  'All',
   'Wedding',
   'Pre Post Wedded',
   'Baby Shoots',
@@ -86,17 +85,17 @@ function LazyCard({
 }
 
 export default function PortfolioClient() {
-  const [active, setActive] = useState('All');
+  const [active, setActive] = useState('');
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [videos, setVideos] = useState<Video[]>([]);
-  const [categories, setCategories] = useState<string[]>(['All']);
+  const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   // Keep a ref to the in-flight fetch so we can abort it on tab change
   const fetchAbortRef = useRef<AbortController | null>(null);
 
-  // ---------------- FETCH CATEGORIES (once) ----------------
+  // ---------------- FETCH CATEGORIES (once, only those with images) ----------------
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -107,16 +106,36 @@ export default function PortfolioClient() {
 
         if (data.success) {
           const cats: string[] = data.data.map((c: any) => c.name);
+
+          // Check each category in parallel — keep only those with ≥1 photo
+          const checks = await Promise.all(
+            cats.map(async (cat) => {
+              try {
+                const r = await fetch(`/api/photos?category=${encodeURIComponent(cat)}`);
+                const d = await r.json();
+                return d.success && (d.data ?? []).length > 0 ? cat : null;
+              } catch {
+                return null;
+              }
+            })
+          );
+          if (cancelled) return;
+
+          const withImages = checks.filter(Boolean) as string[];
           const sorted = [
             ...CATEGORY_ORDER.filter(
-              (o) => o !== 'All' && o !== 'Films' && cats.includes(o)
+              (o) => o !== 'Films' && withImages.includes(o)
             ),
-            ...cats.filter((c) => !CATEGORY_ORDER.includes(c)),
+            ...withImages.filter((c) => !CATEGORY_ORDER.includes(c)),
           ];
-          setCategories(['All', ...sorted, 'Films']);
+          const finalCategories = [...sorted, 'Films'];
+          setCategories(finalCategories);
+          if (sorted.length > 0) setActive(sorted[0]);
         }
       } catch {
-        setCategories(CATEGORY_ORDER);
+        const fallback = CATEGORY_ORDER.filter((c) => c !== 'Films');
+        setCategories([...fallback, 'Films']);
+        if (fallback.length > 0) setActive(fallback[0]);
       }
     })();
     return () => { cancelled = true; };
@@ -124,6 +143,8 @@ export default function PortfolioClient() {
 
   // ---------------- FETCH CONTENT on tab change ----------------
   useEffect(() => {
+    if (!active) return;
+
     // Abort any previous in-flight request
     fetchAbortRef.current?.abort();
     const ctrl = new AbortController();
@@ -137,10 +158,7 @@ export default function PortfolioClient() {
 
     setLoading(true);
 
-    const url =
-      active === 'All'
-        ? '/api/photos'
-        : `/api/photos?category=${encodeURIComponent(active)}`;
+    const url = `/api/photos?category=${encodeURIComponent(active)}`;
 
     fetch(url, { signal: ctrl.signal })
       .then((r) => r.json())
@@ -161,16 +179,13 @@ export default function PortfolioClient() {
   // Preload data for a tab on hover (fires a background fetch into browser cache)
   const prefetchTab = useCallback((cat: string) => {
     if (cat === 'Films' || cat === active) return;
-    const url =
-      cat === 'All'
-        ? '/api/photos'
-        : `/api/photos?category=${encodeURIComponent(cat)}`;
+    const url = `/api/photos?category=${encodeURIComponent(cat)}`;
     // Fire-and-forget — result goes into HTTP cache
     fetch(url, { priority: 'low' } as RequestInit).catch(() => {});
   }, [active]);
 
   // Memoised skeleton count so it doesn't thrash during re-renders
-  const skeletonCount = useMemo(() => (active === 'All' ? 12 : 6), [active]);
+  const skeletonCount = useMemo(() => 6, []);
 
   return (
     <>
