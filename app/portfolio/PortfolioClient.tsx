@@ -48,9 +48,11 @@ function SkeletonCard({ aspect }: { aspect: string }) {
 function LazyCard({
   children,
   style,
+  onClick,
 }: {
   children: React.ReactNode;
   style: React.CSSProperties;
+  onClick?: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -78,6 +80,7 @@ function LazyCard({
       animate={visible ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.97 }}
       transition={{ duration: 0.35, ease: 'easeOut' }}
       style={style}
+      onClick={onClick}
     >
       {children}
     </motion.div>
@@ -90,6 +93,7 @@ export default function PortfolioClient() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [zoomedPhoto, setZoomedPhoto] = useState<Photo | null>(null);
   const router = useRouter();
 
   // Keep a ref to the in-flight fetch so we can abort it on tab change
@@ -186,6 +190,24 @@ export default function PortfolioClient() {
 
   // Memoised skeleton count so it doesn't thrash during re-renders
   const skeletonCount = useMemo(() => 6, []);
+
+  // ---------------- LIGHTBOX: lock scroll + Escape-to-close while zoomed ----------------
+  useEffect(() => {
+    if (!zoomedPhoto) return;
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setZoomedPhoto(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [zoomedPhoto]);
 
   return (
     <>
@@ -342,12 +364,13 @@ export default function PortfolioClient() {
               {photos.map((p) => (
                 <LazyCard
                   key={p._id}
+                  onClick={() => setZoomedPhoto(p)}
                   style={{
                     position: 'relative',
                     overflow: 'hidden',
                     borderRadius: 2,
                     aspectRatio: '3/4',
-                    cursor: 'pointer',
+                    cursor: 'zoom-in',
                     background: 'var(--linen)',
                   }}
                 >
@@ -417,6 +440,112 @@ export default function PortfolioClient() {
           )}
         </div>
       </section>
+
+      {/* LIGHTBOX */}
+      <AnimatePresence>
+        {zoomedPhoto && (
+          <motion.div
+            key="lightbox-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={() => setZoomedPhoto(null)}
+            role="dialog"
+            aria-modal="true"
+            aria-label={zoomedPhoto.title || zoomedPhoto.category}
+            style={{
+              position: 'fixed',
+              inset: 0,
+              zIndex: 1000,
+              background: 'rgba(20,16,10,0.92)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '2.5rem 1.5rem',
+              cursor: 'zoom-out',
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.96 }}
+              transition={{ duration: 0.3, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'relative',
+                maxWidth: '90vw',
+                maxHeight: '88vh',
+                cursor: 'default',
+              }}
+            >
+              <img
+                src={zoomedPhoto.imageUrl}
+                alt={zoomedPhoto.title || zoomedPhoto.category}
+                style={{
+                  display: 'block',
+                  maxWidth: '90vw',
+                  maxHeight: '88vh',
+                  width: 'auto',
+                  height: 'auto',
+                  borderRadius: 2,
+                  boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+                }}
+              />
+
+              {/* CLOSE BUTTON */}
+              <button
+                onClick={() => setZoomedPhoto(null)}
+                aria-label="Close"
+                style={{
+                  position: 'absolute',
+                  top: 12,
+                  right: 12,
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  border: '1.5px solid rgba(245,235,220,0.4)',
+                  background: 'rgba(20,16,10,0.65)',
+                  color: '#f5ebdc',
+                  fontSize: '1.2rem',
+                  lineHeight: 1,
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'background 0.2s, border-color 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = 'var(--gold)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'var(--gold)';
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = 'rgba(20,16,10,0.65)';
+                  (e.currentTarget as HTMLElement).style.borderColor = 'rgba(245,235,220,0.4)';
+                }}
+              >
+                ×
+              </button>
+
+              {/* CAPTION */}
+              {(zoomedPhoto.title || zoomedPhoto.category) && (
+                <p
+                  style={{
+                    marginTop: '0.9rem',
+                    textAlign: 'center',
+                    fontSize: '0.62rem',
+                    letterSpacing: '0.2em',
+                    textTransform: 'uppercase',
+                    color: 'var(--gold-light)',
+                  }}
+                >
+                  {zoomedPhoto.title || zoomedPhoto.category}
+                </p>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </>
   );
 }
