@@ -48,29 +48,13 @@ export default function HeroSection() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [startAuto]);
 
-  // ── Gallery auto-slide ───────────────────────────────────────────────────
+  // ── Gallery auto-swipe (simple slide, no fade) ──────────────────────────
   const [groupIndex, setGroupIndex] = useState(0);
-  const [animating, setAnimating] = useState(false);
   const [galleryProgressing, setGalleryProgressing] = useState(true);
   const galleryTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const goToGroup = useCallback((idx: number) => {
-    if (animating) return;
-    setAnimating(true);
-    setTimeout(() => {
-      setGroupIndex(idx);
-      setAnimating(false);
-    }, 300);
-  }, [animating]);
-
   const advanceGallery = useCallback(() => {
-    setGroupIndex(prev => {
-      const next = (prev + 1) % GROUPS.length;
-      setAnimating(true);
-      setTimeout(() => setAnimating(false), 300);
-      return next;
-    });
-    // Reset progress bar
+    setGroupIndex(prev => (prev + 1) % GROUPS.length);
     setGalleryProgressing(false);
     requestAnimationFrame(() => requestAnimationFrame(() => setGalleryProgressing(true)));
   }, []);
@@ -88,15 +72,13 @@ export default function HeroSection() {
   }, [startGalleryAuto]);
 
   const prevGroup = () => {
-    goToGroup((groupIndex - 1 + GROUPS.length) % GROUPS.length);
-    startGalleryAuto(); // reset timer on manual click
-  };
-  const nextGroup = () => {
-    goToGroup((groupIndex + 1) % GROUPS.length);
+    setGroupIndex(prev => (prev - 1 + GROUPS.length) % GROUPS.length);
     startGalleryAuto();
   };
-
-  const currentImages = GROUPS[groupIndex].map(i => GALLERY_IMAGES[i]);
+  const nextGroup = () => {
+    setGroupIndex(prev => (prev + 1) % GROUPS.length);
+    startGalleryAuto();
+  };
 
   return (
     <section
@@ -186,26 +168,38 @@ export default function HeroSection() {
             background: '#fff',
           }}>
             <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3,1fr)',
-              gap: 5,
-              background: '#fff',
-              padding: 5,
-              opacity: animating ? 0 : 1,
-              transition: 'opacity 0.3s ease',
+              display: 'flex',
+              width: `${GROUPS.length * 100}%`,
+              transform: `translateX(-${groupIndex * (100 / GROUPS.length)}%)`,
+              transition: 'transform 0.6s ease',
             }}>
-              {currentImages.map((img, i) => (
-                <div key={`${groupIndex}-${i}`} style={{
-                  aspectRatio: '3/4',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  background: '#e8e0d4',
+              {GROUPS.map((group, gi) => (
+                <div key={gi} style={{
+                  width: `${100 / GROUPS.length}%`,
+                  flexShrink: 0,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(3,1fr)',
+                  gap: 5,
+                  background: '#fff',
+                  padding: 5,
                 }}>
-                  <Image
-                    src={img.src} alt={img.alt} fill
-                    style={{ objectFit: 'cover' }}
-                    sizes="(max-width: 600px) 33vw, 300px"
-                  />
+                  {group.map(i => {
+                    const img = GALLERY_IMAGES[i];
+                    return (
+                      <div key={i} style={{
+                        aspectRatio: '3/4',
+                        overflow: 'hidden',
+                        position: 'relative',
+                        background: '#e8e0d4',
+                      }}>
+                        <Image
+                          src={img.src} alt={img.alt} fill
+                          style={{ objectFit: 'cover' }}
+                          sizes="(max-width: 600px) 33vw, 300px"
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -232,7 +226,7 @@ export default function HeroSection() {
             {GROUPS.map((_, i) => (
               <button
                 key={i}
-                onClick={() => { goToGroup(i); startGalleryAuto(); }}
+                onClick={() => { setGroupIndex(i); startGalleryAuto(); }}
                 aria-label={`Go to group ${i + 1}`}
                 style={{
                   width: 7, height: 7, borderRadius: '50%', padding: 0,

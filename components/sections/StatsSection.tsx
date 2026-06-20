@@ -479,10 +479,10 @@ export default function StatsSection() {
 
         {/* MOBILE MEDIA ROW — image + video in 2 cols, outside grid */}
 
-        <div className="s-mobile-media">
+        {/* <div className="s-mobile-media"> */}
 
           {/* Image col */}
-          <div className="s-mobile-media__img">
+          {/* <div className="s-mobile-media__img">
 
             <div className="s-mobile-img-wrap">
 
@@ -493,10 +493,10 @@ export default function StatsSection() {
 
             </div>
 
-          </div>
+          </div> */}
 
           {/* Video col */}
-          <div className="s-mobile-media__vid">
+          {/* <div className="s-mobile-media__vid">
 
             <span className="s-mobile-vid-label">
               Watch Our Story
@@ -524,9 +524,9 @@ export default function StatsSection() {
               }}
             />
 
-          </div>
+          </div> */}
 
-        </div>
+        {/* </div> */}
 
       </section>
 

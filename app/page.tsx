@@ -27,7 +27,7 @@ export default function HomePage() {
       {/* <AboutTeaser /> */}
       <VideographyTeaser/>
       <TestimonialsSection />
-      {/* <AIChatbot /> */}
+      <AIChatbot />
     </PublicLayout>
   );
 }
