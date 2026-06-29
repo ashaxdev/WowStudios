@@ -28,7 +28,7 @@ const packages = [
     name: 'Candid Photography',
     price: 'Contact Us',
     duration: 'Custom',
-    prints: 'Edited Photos',
+    prints: 'Full Softcopy',
     features: [
       'Natural Expressions',
       'Storytelling Moments',
@@ -56,7 +56,7 @@ const packages = [
     name: 'Pre-Wedding Shoots',
     price: 'Contact Us',
     duration: '4 Hours',
-    prints: '40 Edited Photos',
+    prints: '40 Full Softcopy',
     features: [
       'Multiple Locations',
       'Outfit Changes',
@@ -84,7 +84,7 @@ const packages = [
     name: 'Maternity Photography',
     price: 'Contact Us',
     duration: '2 Hours',
-    prints: '20 Edited Photos',
+    prints: '20 Full Softcopy',
     features: [
       'Studio Session',
       'Outdoor Session',
@@ -98,7 +98,7 @@ const packages = [
     name: 'Newborn Photography',
     price: 'Contact Us',
     duration: '3 Hours',
-    prints: '25 Edited Photos',
+    prints: '25 Full Softcopy',
     features: [
       'Safe Baby Posing',
       'Premium Props',
@@ -112,7 +112,7 @@ const packages = [
     name: 'Birthday Photography',
     price: 'Contact Us',
     duration: '2 Hours',
-    prints: '30 Edited Photos',
+    prints: '30 Full Softcopy',
     features: [
       'Theme Setup',
       'Cake Smash Session',
@@ -126,7 +126,7 @@ const packages = [
     name: 'Family Portraits',
     price: 'Contact Us',
     duration: '1.5 Hours',
-    prints: '15 Edited Photos',
+    prints: '15 Full Softcopy',
     features: [
       'Studio Portraits',
       'Outdoor Portraits',
