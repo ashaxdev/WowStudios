@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   twitter: { card: 'summary_large_image', title: 'Wow Shotz Studio', description: 'Premium Photography in Tirunelveli' },
   robots: { index: true, follow: true },
   metadataBase: new URL('https://wowshotzstudio.com'),
+   icons: { icon: '/favicon.ico' },
  
 };
 
