@@ -1,7 +1,6 @@
 'use client';
+
 import { useRouter } from 'next/navigation';
-
-
 import { useEffect, useState, useRef } from 'react';
 import './blog.css';
 
@@ -12,7 +11,7 @@ interface Blog {
   content: string;
   excerpt: string;
   coverImage?: string;
-  tags: string[];
+  tags?: string[];
   published: boolean;
   createdAt: string;
 }
@@ -30,47 +29,75 @@ const EMPTY_FORM: FormState = {
   content: '',
   excerpt: '',
   tags: '',
-  published: false,
+  published: true,
 };
 
 export default function BlogsAdmin() {
+  const router = useRouter();
+
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
-  const [token, setToken] = useState('');
+  const [msgType, setMsgType] = useState<'success' | 'error'>('success');
 
-  const router = useRouter();
-
-  // null = create mode, string = edit mode (holds the blog _id)
+  // null = create mode, string = edit mode (blog _id)
   const [editingId, setEditingId] = useState<string | null>(null);
-
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [preview, setPreview] = useState<string | null>(null);
 
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setToken(localStorage.getItem('admin_token') || '');
     load();
   }, []);
 
+  // Revoke blob URLs only (not existing Cloudinary URLs)
   useEffect(() => {
     return () => {
-      if (preview) URL.revokeObjectURL(preview);
+      if (preview && preview.startsWith('blob:')) URL.revokeObjectURL(preview);
     };
   }, [preview]);
+
+  function notify(text: string, type: 'success' | 'error' = 'success') {
+    setMsg(text);
+    setMsgType(type);
+  }
+
+  // Always read the freshest token
+  function getAuthHeaders(): Record<string, string> {
+    const token =
+      typeof window !== 'undefined' ? localStorage.getItem('admin_token') || '' : '';
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async function parseResponse(res: Response) {
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      /* non-JSON response */
+    }
+
+    if (res.status === 401) {
+      throw new Error('Session expired. Please log in again.');
+    }
+    if (!res.ok || (data && data.success === false)) {
+      throw new Error(data?.error || `Request failed (${res.status})`);
+    }
+    return data;
+  }
 
   async function load() {
     try {
       setLoading(true);
-      const res = await fetch('/api/blogs');
+      const res = await fetch('/api/blogs', { cache: 'no-store' });
       const data = await res.json();
       setBlogs(data.success ? data.data || [] : []);
     } catch (error) {
       console.error(error);
-      setMsg('Failed to load blogs');
+      notify('Failed to load blogs', 'error');
     } finally {
       setLoading(false);
     }
@@ -88,17 +115,17 @@ export default function BlogsAdmin() {
   function openEdit(blog: Blog) {
     setEditingId(blog._id);
     setForm({
-      title: blog.title,
-      content: blog.content,
-      excerpt: blog.excerpt,
-      tags: blog.tags.join(', '),
-      published: blog.published,
+      title: blog.title || '',
+      content: blog.content || '',
+      excerpt: blog.excerpt || '',
+      tags: (blog.tags || []).join(', '),
+      published: !!blog.published,
     });
-    // Show existing cover image as preview (it's already a URL, not a blob)
     setPreview(blog.coverImage || null);
     if (fileRef.current) fileRef.current.value = '';
     setMsg('');
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   function closeForm() {
@@ -120,46 +147,48 @@ export default function BlogsAdmin() {
       const isEdit = editingId !== null;
 
       if (isEdit) {
-        // PUT with JSON (cover image change via separate upload or keep existing)
-        const body: Record<string, any> = {
-          title: form.title,
-          content: form.content,
-          excerpt: form.excerpt,
-          tags: form.tags.split(',').map(t => t.trim()).filter(Boolean),
-          published: form.published,
-        };
-
-        // If a new file was selected, upload via FormData
         if (file) {
+          // New cover image selected -> multipart
           const fd = new FormData();
-          Object.entries(body).forEach(([k, v]) =>
-            fd.append(k, Array.isArray(v) ? v.join(',') : String(v))
-          );
+          fd.append('title', form.title);
+          fd.append('content', form.content);
+          fd.append('excerpt', form.excerpt);
+          fd.append('tags', form.tags);
+          fd.append('published', String(form.published));
           fd.append('coverImage', file);
 
           const res = await fetch(`/api/blogs/${editingId}`, {
             method: 'PUT',
-            headers: { Authorization: `Bearer ${token}` },
+            headers: getAuthHeaders(), // do NOT set Content-Type for FormData
             body: fd,
           });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Failed');
+          await parseResponse(res);
         } else {
+          // No new image -> JSON
           const res = await fetch(`/api/blogs/${editingId}`, {
             method: 'PUT',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
+              ...getAuthHeaders(),
             },
-            body: JSON.stringify(body),
+            body: JSON.stringify({
+              title: form.title,
+              content: form.content,
+              excerpt: form.excerpt,
+              tags: form.tags
+                .split(',')
+                .map(t => t.trim())
+                .filter(Boolean),
+              published: form.published,
+            }),
           });
-          const data = await res.json();
-          if (!res.ok) throw new Error(data.error || 'Failed');
+          await parseResponse(res);
         }
 
-        setMsg('Blog updated successfully');
+        closeForm();
+        await load();
+        notify('Blog updated successfully');
       } else {
-        // POST — create new
         const fd = new FormData();
         fd.append('title', form.title);
         fd.append('content', form.content);
@@ -170,19 +199,19 @@ export default function BlogsAdmin() {
 
         const res = await fetch('/api/blogs', {
           method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: getAuthHeaders(),
           body: fd,
         });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Failed');
+        await parseResponse(res);
 
-        setMsg('Blog created successfully');
+        closeForm();
+        await load();
+        notify('Blog created successfully');
       }
-
-      closeForm();
-      await load();
     } catch (error: any) {
-      setMsg(error.message || 'Failed to save blog');
+      console.error('SAVE BLOG ERROR:', error);
+      // keep the form open so the user does not lose their text
+      notify(error.message || 'Failed to save blog', 'error');
     } finally {
       setSaving(false);
     }
@@ -194,22 +223,16 @@ export default function BlogsAdmin() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...getAuthHeaders(),
         },
-        body: JSON.stringify({
-          title: blog.title,
-          excerpt: blog.excerpt,
-          content: blog.content,
-          tags: blog.tags,
-          published: !blog.published,
-        }),
+        body: JSON.stringify({ published: !blog.published }),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      load();
-    } catch (error) {
+      await parseResponse(res);
+      notify(blog.published ? 'Blog unpublished' : 'Blog published');
+      await load();
+    } catch (error: any) {
       console.error(error);
-      setMsg('Failed to update blog');
+      notify(error.message || 'Failed to update blog', 'error');
     }
   }
 
@@ -219,38 +242,34 @@ export default function BlogsAdmin() {
     try {
       const res = await fetch(`/api/blogs/${id}`, {
         method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: getAuthHeaders(),
       });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error);
-      setMsg('Blog deleted successfully');
-      load();
-    } catch (error) {
+      await parseResponse(res);
+      notify('Blog deleted successfully');
+      await load();
+    } catch (error: any) {
       console.error(error);
-      setMsg('Failed to delete blog');
+      notify(error.message || 'Failed to delete blog', 'error');
     }
   }
 
   return (
     <div className="blogs-admin">
-      
       {/* Header */}
       <div className="page-header">
-           <button
-      onClick={() => router.back()}
-      className="back-btn"
-    >
-      ← Back
-    </button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Back button — visible when form is open */}
-          {showForm && (
-            <button className="btn-back" onClick={closeForm} aria-label="Back to list">
-              ← Back
-            </button>
-          )}
+          <button
+            type="button"
+            className="btn-back"
+            onClick={() => (showForm ? closeForm() : router.back())}
+            aria-label="Back"
+          >
+            ← Back
+          </button>
           <div>
-            <h1 className="page-title">{showForm ? (editingId ? 'Edit post' : 'New post') : 'Blogs'}</h1>
+            <h1 className="page-title">
+              {showForm ? (editingId ? 'Edit post' : 'New post') : 'Blogs'}
+            </h1>
             {!showForm && (
               <p className="page-sub">
                 {blogs.length} posts · {blogs.filter(b => b.published).length} published
@@ -267,7 +286,22 @@ export default function BlogsAdmin() {
 
       {/* Message */}
       {msg && (
-        <div className="alert-success" role="alert">
+        <div
+          className={msgType === 'error' ? 'alert-error' : 'alert-success'}
+          role="alert"
+          style={
+            msgType === 'error'
+              ? {
+                  background: '#fdecea',
+                  color: '#b42318',
+                  border: '1px solid #f5c2c0',
+                  padding: '12px 16px',
+                  borderRadius: 8,
+                  marginBottom: 16,
+                }
+              : undefined
+          }
+        >
           {msg}
         </div>
       )}
@@ -309,7 +343,7 @@ export default function BlogsAdmin() {
                 onChange={e => setForm({ ...form, content: e.target.value })}
                 required
                 rows={8}
-                placeholder="Full blog content (supports HTML or Markdown)"
+                placeholder="Full blog content (supports HTML)"
                 className="mono"
               />
             </div>
@@ -328,15 +362,18 @@ export default function BlogsAdmin() {
               <div className="field">
                 <label>Cover image</label>
                 <div className="upload-zone" onClick={() => fileRef.current?.click()}>
-                  {preview
-                    ? <img src={preview} alt="Cover preview" className="upload-preview" />
-                    : <span>Click to upload cover</span>}
+                  {preview ? (
+                    <img src={preview} alt="Cover preview" className="upload-preview" />
+                  ) : (
+                    <span>Click to upload cover</span>
+                  )}
                 </div>
                 <input
                   ref={fileRef}
                   type="file"
                   accept="image/*"
                   className="hidden"
+                  style={{ display: 'none' }}
                   onChange={e => {
                     const f = e.target.files?.[0];
                     if (f) setPreview(URL.createObjectURL(f));
@@ -352,7 +389,7 @@ export default function BlogsAdmin() {
                 checked={form.published}
                 onChange={e => setForm({ ...form, published: e.target.checked })}
               />
-              <label htmlFor="bf-pub">Publish immediately</label>
+              <label htmlFor="bf-pub">Published (visible to customers)</label>
             </div>
 
             <div className="form-actions">
@@ -368,8 +405,8 @@ export default function BlogsAdmin() {
       )}
 
       {/* Blog list */}
-      {!showForm && (
-        loading ? (
+      {!showForm &&
+        (loading ? (
           <div className="state-loading">Loading…</div>
         ) : blogs.length === 0 ? (
           <div className="state-empty">
@@ -386,14 +423,18 @@ export default function BlogsAdmin() {
                 <div className="blog-body">
                   <div className="blog-head">
                     <h3 className="blog-title">{blog.title}</h3>
-                    <span className={`badge ${blog.published ? 'badge-published' : 'badge-draft'}`}>
+                    <span
+                      className={`badge ${blog.published ? 'badge-published' : 'badge-draft'}`}
+                    >
                       {blog.published ? 'Published' : 'Draft'}
                     </span>
                   </div>
                   <p className="blog-excerpt">{blog.excerpt}</p>
                   <div className="tag-list">
-                    {blog.tags.map(t => (
-                      <span key={t} className="tag">{t}</span>
+                    {(blog.tags || []).map(t => (
+                      <span key={t} className="tag">
+                        {t}
+                      </span>
                     ))}
                   </div>
                 </div>
@@ -404,15 +445,17 @@ export default function BlogsAdmin() {
                   <button className="btn-action" onClick={() => togglePublish(blog)}>
                     {blog.published ? 'Unpublish' : 'Publish'}
                   </button>
-                  <button className="btn-action btn-danger" onClick={() => handleDelete(blog._id)}>
+                  <button
+                    className="btn-action btn-danger"
+                    onClick={() => handleDelete(blog._id)}
+                  >
                     Delete
                   </button>
                 </div>
               </div>
             ))}
           </div>
-        )
-      )}
+        ))}
     </div>
   );
 }
